@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 import type { TemplateExercise } from "@/lib/workoutTemplate";
 import {
@@ -19,6 +20,23 @@ type Exercise = TemplateExercise & {
   photoPublicId?: string | null;
   photoAt?: string | null;
 };
+
+function toYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    let id: string | null = null;
+    if (u.hostname.includes("youtu.be")) {
+      id = u.pathname.slice(1);
+    } else if (u.pathname.startsWith("/shorts/")) {
+      id = u.pathname.split("/shorts/")[1];
+    } else {
+      id = u.searchParams.get("v");
+    }
+    return id ? `https://www.youtube.com/embed/${id}` : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function WorkoutChecklist({
   date,
@@ -46,7 +64,7 @@ export default function WorkoutChecklist({
   const [completed, setCompleted] = useState(initialCompleted);
   const [newExercise, setNewExercise] = useState({ name: "", sets: "", rest: "" });
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [confirmUndoIndex, setConfirmUndoIndex] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const captureIndexRef = useRef<number | null>(null);
@@ -73,19 +91,33 @@ export default function WorkoutChecklist({
     return !isCustom && !EXERCISES_NO_PHOTO_NEEDED.has(ex.name);
   }
 
-  function toggleExercise(i: number) {
-    const ex = exercises[i];
-    if (!ex.done && needsPhoto(ex)) {
-      // marking done requires a proof photo (machine/cable exercises only)
-      captureIndexRef.current = i;
-      fileInputRef.current?.click();
-      return;
-    }
+  function applyToggle(i: number) {
     const next = exercises.map((e, idx) => (idx === i ? { ...e, done: !e.done } : e));
     const allDone = next.length > 0 && next.every((e) => e.done);
     setExercises(next);
     setCompleted(allDone);
     persist(next, allDone);
+  }
+
+  function toggleExercise(i: number) {
+    const ex = exercises[i];
+    if (ex.done) {
+      // unmarking a completed exercise needs confirmation to avoid accidental taps
+      setConfirmUndoIndex(i);
+      return;
+    }
+    if (needsPhoto(ex)) {
+      // marking done requires a proof photo (machine/cable exercises only)
+      captureIndexRef.current = i;
+      fileInputRef.current?.click();
+      return;
+    }
+    applyToggle(i);
+  }
+
+  function confirmUndo() {
+    if (confirmUndoIndex != null) applyToggle(confirmUndoIndex);
+    setConfirmUndoIndex(null);
   }
 
   async function handlePhotoSelected(file: File) {
@@ -176,17 +208,15 @@ export default function WorkoutChecklist({
         <p className="mb-3 text-sm text-faint">Chưa có bài tập nào — thêm bài bên dưới.</p>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {exercises.map((ex, i) => {
           const thumb = ex.photoUrl ?? EXERCISE_IMAGES[ex.name];
           const uploading = uploadingIndex === i;
           const muscleGroup = EXERCISE_MUSCLE_GROUP[ex.name];
-          const videoUrl = EXERCISE_VIDEOS[ex.name];
+          const embedUrl = EXERCISE_VIDEOS[ex.name] ? toYouTubeEmbedUrl(EXERCISE_VIDEOS[ex.name]) : null;
           const alternative = EXERCISE_ALTERNATIVE[ex.name];
-          const hasInfo = Boolean(muscleGroup || videoUrl || alternative);
-          const expanded = expandedIndex === i;
           return (
-            <div key={i} className="border-t border-dashed border-line pt-2 first:border-t-0 first:pt-0">
+            <div key={i} className="border-t border-dashed border-line pt-3 first:border-t-0 first:pt-0">
               <div className="flex items-center gap-3">
                 {thumb && (
                   <ZoomableImage
@@ -225,19 +255,6 @@ export default function WorkoutChecklist({
                     </span>
                   </span>
                 </button>
-                {hasInfo && (
-                  <button
-                    type="button"
-                    onClick={() => setExpandedIndex(expanded ? null : i)}
-                    className={clsx(
-                      "flex-shrink-0 rounded-full px-1.5 text-xs",
-                      expanded ? "text-rust" : "text-faint hover:text-rust"
-                    )}
-                    aria-label="Xem hướng dẫn bài tập"
-                  >
-                    ⓘ
-                  </button>
-                )}
                 {isCustom && (
                   <button
                     type="button"
@@ -250,36 +267,32 @@ export default function WorkoutChecklist({
                 )}
               </div>
 
-              {expanded && hasInfo && (
-                <div className="ml-14 mt-2 space-y-1.5 rounded-sm bg-paper-dim p-3 text-xs">
-                  {muscleGroup && (
-                    <p>
-                      <span className="font-display uppercase tracking-wide text-faint">Nhóm cơ: </span>
-                      <span className="text-ink">{muscleGroup}</span>
-                    </p>
-                  )}
-                  {videoUrl && (
-                    <p>
-                      <span className="font-display uppercase tracking-wide text-faint">Video hướng dẫn: </span>
-                      <a
-                        href={videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-steel underline"
-                      >
-                        Xem trên YouTube ↗
-                      </a>
-                    </p>
-                  )}
-                  {alternative && (
-                    <p>
-                      <span className="font-display uppercase tracking-wide text-faint">Nếu máy bận, thay bằng: </span>
-                      <span className="text-ink">
-                        {alternative.name} ({alternative.sets} · nghỉ {alternative.rest})
-                      </span>
-                    </p>
-                  )}
+              {muscleGroup && (
+                <span className="ml-14 mt-2 inline-flex items-center rounded-full bg-steel/15 px-2.5 py-0.5 font-display text-[10px] uppercase tracking-wide text-steel">
+                  {muscleGroup}
+                </span>
+              )}
+
+              {embedUrl && (
+                <div className="ml-14 mt-2 aspect-video max-w-xs overflow-hidden rounded-sm border border-line">
+                  <iframe
+                    src={embedUrl}
+                    title={`Video hướng dẫn: ${ex.name}`}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    allowFullScreen
+                    className="h-full w-full"
+                  />
                 </div>
+              )}
+
+              {alternative && (
+                <p className="ml-14 mt-2 text-xs text-muted">
+                  <span className="font-display uppercase tracking-wide text-faint">Nếu máy bận, thay bằng: </span>
+                  <span className="text-ink">
+                    {alternative.name} ({alternative.sets} · nghỉ {alternative.rest})
+                  </span>
+                </p>
               )}
             </div>
           );
@@ -321,6 +334,41 @@ export default function WorkoutChecklist({
           Hoàn thành buổi tập ✓
         </p>
       )}
+
+      {confirmUndoIndex != null &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4"
+            onClick={() => setConfirmUndoIndex(null)}
+          >
+            <div
+              className="w-full max-w-xs rounded-sm border border-line bg-paper-card p-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-sm text-ink">
+                Huỷ đánh dấu hoàn thành cho{" "}
+                <span className="font-medium">{exercises[confirmUndoIndex]?.name}</span>?
+              </p>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmUndoIndex(null)}
+                  className="rounded-sm border border-line px-3 py-1.5 font-display text-xs uppercase tracking-wide text-muted"
+                >
+                  Không
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmUndo}
+                  className="rounded-sm bg-rust px-3 py-1.5 font-display text-xs uppercase tracking-wide text-paper"
+                >
+                  Huỷ hoàn thành
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
