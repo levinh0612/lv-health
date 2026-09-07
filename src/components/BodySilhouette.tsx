@@ -26,6 +26,10 @@ function adviceFor(kind: "fat" | "muscle", status: SegmentStatus): string {
   return status === "under" ? "Nên tăng cơ vùng này" : "Cơ phát triển tốt";
 }
 
+// Vertical anchor points (% of the diagram's height) that each callout's
+// connector line reaches out to, matching the SVG geometry below.
+const ROW_TOP = { arm: 37.5, trunk: 56, leg: 77 };
+
 export default function BodySilhouette({
   title,
   kind,
@@ -43,60 +47,76 @@ export default function BodySilhouette({
         {title}
       </div>
 
-      <div className="flex justify-center">
-        <svg viewBox="0 0 120 200" width="120" height="200" aria-hidden>
-          {/* head */}
+      <div className="relative mx-auto h-64 max-w-full" style={{ width: "min(100%, 360px)" }}>
+        <svg
+          viewBox="0 0 120 200"
+          className="absolute left-1/2 top-0 h-full -translate-x-1/2"
+          aria-hidden
+        >
           <circle cx="60" cy="18" r="14" fill="var(--line)" />
-          {/* left arm (viewer's left = person's right) */}
+          {/* rendered on the viewer's left = the person's right side */}
           <rect x="14" y="40" width="16" height="70" rx="8" fill={c("rightArm")} />
-          {/* right arm */}
           <rect x="90" y="40" width="16" height="70" rx="8" fill={c("leftArm")} />
-          {/* trunk */}
           <rect x="36" y="36" width="48" height="78" rx="10" fill={c("trunk")} />
-          {/* left leg */}
           <rect x="38" y="118" width="18" height="72" rx="8" fill={c("rightLeg")} />
-          {/* right leg */}
           <rect x="64" y="118" width="18" height="72" rx="8" fill={c("leftLeg")} />
         </svg>
-      </div>
 
-      <div className="mt-3 space-y-2 text-[11px] text-muted">
-        <SegRow label="Tay trái" kind={kind} detail={segments.leftArm} color={c("leftArm")} />
-        <SegRow label="Tay phải" kind={kind} detail={segments.rightArm} color={c("rightArm")} />
-        <SegRow label="Thân" kind={kind} detail={segments.trunk} color={c("trunk")} />
-        <SegRow label="Chân trái" kind={kind} detail={segments.leftLeg} color={c("leftLeg")} />
-        <SegRow label="Chân phải" kind={kind} detail={segments.rightLeg} color={c("rightLeg")} />
+        <Callout side="left" top={ROW_TOP.arm} label="Tay phải" kind={kind} detail={segments.rightArm} />
+        <Callout side="right" top={ROW_TOP.arm} label="Tay trái" kind={kind} detail={segments.leftArm} />
+        <Callout side="left" top={ROW_TOP.trunk} label="Thân" kind={kind} detail={segments.trunk} />
+        <Callout side="left" top={ROW_TOP.leg} label="Chân phải" kind={kind} detail={segments.rightLeg} />
+        <Callout side="right" top={ROW_TOP.leg} label="Chân trái" kind={kind} detail={segments.leftLeg} />
       </div>
     </div>
   );
 }
 
-function SegRow({
+function Callout({
+  side,
+  top,
   label,
   kind,
   detail,
-  color,
 }: {
+  side: "left" | "right";
+  top: number;
   label: string;
   kind: "fat" | "muscle";
   detail: SegmentDetail;
-  color: string;
 }) {
+  const color = colorFor(kind, detail.status);
+  const alarming = kind === "fat" && detail.status === "over";
+
   return (
-    <div className="flex items-start gap-1.5">
+    <div
+      className={clsx(
+        "absolute w-[42%] text-[10.5px] leading-tight",
+        side === "left" ? "right-1/2 mr-[70px] text-right" : "left-1/2 ml-[70px] text-left"
+      )}
+      style={{ top: `${top}%`, transform: "translateY(-50%)" }}
+    >
+      <div
+        className={clsx(
+          "absolute top-1/2 h-px w-[62px] border-t border-dashed",
+          side === "left" ? "-right-[62px]" : "-left-[62px]"
+        )}
+        style={{ borderColor: color }}
+        aria-hidden
+      />
       <span
-        className="mt-1 h-2 w-2 flex-shrink-0 rounded-full"
+        className={clsx("inline-block h-1.5 w-1.5 rounded-full align-middle")}
         style={{ background: color }}
       />
-      <div>
-        <span className="text-ink">{label}</span>
-        {": "}
-        <span className={clsx(kind === "fat" && detail.status === "over" && "font-semibold text-rust")}>
-          {statusLabelFor(kind, detail.status)}
-        </span>
-        {detail.percent != null && <span> ({detail.percent}%)</span>}
-        <div className="text-faint">{adviceFor(kind, detail.status)}</div>
-      </div>
+      <span className="text-ink"> {label}: </span>
+      <span
+        className={clsx("font-medium", alarming && "font-semibold")}
+        style={{ color }}
+      >
+        {statusLabelFor(kind, detail.status)}
+      </span>
+      {detail.percent != null && <span className="text-faint"> ({detail.percent}%)</span>}
+      <div className="text-faint">{adviceFor(kind, detail.status)}</div>
     </div>
   );
 }

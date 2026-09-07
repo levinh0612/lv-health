@@ -48,6 +48,13 @@ const inbodySchema = {
     visceralFatLevel: { type: Type.NUMBER, nullable: true },
     bmrKcal: { type: Type.NUMBER, nullable: true },
     desirableWeightKg: { type: Type.NUMBER, nullable: true },
+    obesityDegreePercent: { type: Type.NUMBER, nullable: true },
+    weightControlKg: { type: Type.NUMBER, nullable: true },
+    bodyFatControlKg: { type: Type.NUMBER, nullable: true },
+    muscleControlKg: { type: Type.NUMBER, nullable: true },
+    abdominalFatRatio: { type: Type.NUMBER, nullable: true },
+    medianaScore: { type: Type.NUMBER, nullable: true },
+    totalEnergyExpenditureKcal: { type: Type.NUMBER, nullable: true },
     segmentFat: { ...segmentsSchema, nullable: true },
     segmentMuscle: { ...segmentsSchema, nullable: true },
   },
@@ -61,6 +68,13 @@ const inbodySchema = {
     "visceralFatLevel",
     "bmrKcal",
     "desirableWeightKg",
+    "obesityDegreePercent",
+    "weightControlKg",
+    "bodyFatControlKg",
+    "muscleControlKg",
+    "abdominalFatRatio",
+    "medianaScore",
+    "totalEnergyExpenditureKcal",
     "segmentFat",
     "segmentMuscle",
   ],
@@ -88,6 +102,13 @@ export async function extractInbodyFromImage(imageBase64: string, mimeType: stri
 - visceralFatLevel: mức mỡ nội tạng (Visceral Fat Level)
 - bmrKcal: BMR (kcal)
 - desirableWeightKg: cân nặng lý tưởng/mong muốn (Desirable Weight, kg)
+- obesityDegreePercent: mức độ béo phì (Obesity Degree, %)
+- weightControlKg: số kg cần tăng/giảm để đạt cân nặng lý tưởng (Weight Control; âm nếu cần giảm, dương nếu cần tăng)
+- bodyFatControlKg: số kg mỡ cần tăng/giảm (Body Fat Control; âm nếu cần giảm)
+- muscleControlKg: số kg cơ cần tăng/giảm (Muscle Control; dương nếu cần tăng)
+- abdominalFatRatio: tỷ lệ mỡ vùng bụng / vòng eo-hông (Abdominal Fat Ratio hoặc Waist-Hip Ratio)
+- medianaScore: điểm tổng thể của máy đo (Mediana Score hoặc InBody Score), thang 0-100
+- totalEnergyExpenditureKcal: tổng năng lượng tiêu hao mỗi ngày (Total Energy Expenditure, kcal)
 - segmentFat: trạng thái mỡ từng vùng cơ thể (Segmental Analysis, cột Body Fat) — leftArm, rightArm, trunk, leftLeg, rightLeg. Mỗi vùng có "status" ("under"/"standard"/"over") và "percent" (số % so với mức chuẩn nếu tờ giấy có in số cạnh thanh bar, ví dụ "115" nghĩa là vượt chuẩn 15%; để null nếu không thấy số). Nếu tờ giấy không có phần Segmental Analysis, để cả object segmentFat là null.
 - segmentMuscle: tương tự nhưng cho cột Muscle (cơ) trong Segmental Analysis.
 

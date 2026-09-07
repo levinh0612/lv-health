@@ -15,6 +15,13 @@ const FIELDS: { key: string; label: string; placeholder: string }[] = [
   { key: "visceralFatLevel", label: "Mỡ nội tạng", placeholder: "13" },
   { key: "bmrKcal", label: "BMR (kcal)", placeholder: "1469" },
   { key: "desirableWeightKg", label: "Cân nặng lý tưởng (kg)", placeholder: "59.3" },
+  { key: "obesityDegreePercent", label: "Mức độ béo phì (%)", placeholder: "131.4" },
+  { key: "weightControlKg", label: "Cân nặng cần chỉnh (kg)", placeholder: "-19.3" },
+  { key: "bodyFatControlKg", label: "Mỡ cần chỉnh (kg)", placeholder: "-21.8" },
+  { key: "muscleControlKg", label: "Cơ cần chỉnh (kg)", placeholder: "+2.5" },
+  { key: "abdominalFatRatio", label: "Tỷ lệ eo/hông", placeholder: "0.90" },
+  { key: "medianaScore", label: "Điểm tổng (Score)", placeholder: "21" },
+  { key: "totalEnergyExpenditureKcal", label: "Tổng năng lượng tiêu hao (kcal)", placeholder: "2555" },
 ];
 
 const SEGMENT_PARTS: { key: keyof BodySegments; label: string }[] = [

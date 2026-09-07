@@ -6,6 +6,8 @@ import SectionHead from "@/components/SectionHead";
 import InbodyForm from "@/components/InbodyForm";
 import BodySilhouette from "@/components/BodySilhouette";
 import ZoomableImage from "@/components/ZoomableImage";
+import InbodyGlossary from "@/components/InbodyGlossary";
+import { buildInbodyGlossary } from "@/lib/inbodyGlossary";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +65,7 @@ export default async function InbodyPage() {
             </div>
 
             {(s.segmentFat || s.segmentMuscle) && (
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {s.segmentFat && (
                   <BodySilhouette title="Mỡ" kind="fat" segments={s.segmentFat} />
                 )}
@@ -72,6 +74,8 @@ export default async function InbodyPage() {
                 )}
               </div>
             )}
+
+            <InbodyGlossary entries={buildInbodyGlossary(s)} />
           </div>
         ))}
       </div>
