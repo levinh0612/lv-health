@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 import type { TemplateExercise } from "@/lib/workoutTemplate";
@@ -65,9 +65,23 @@ export default function WorkoutChecklist({
   const [newExercise, setNewExercise] = useState({ name: "", sets: "", rest: "" });
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [confirmUndoIndex, setConfirmUndoIndex] = useState<number | null>(null);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const captureIndexRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (playingIndex == null) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPlayingIndex(null);
+    }
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [playingIndex]);
 
   function persist(next: Exercise[], nextCompleted: boolean) {
     onMutate?.(next, nextCompleted);
@@ -267,32 +281,28 @@ export default function WorkoutChecklist({
                 )}
               </div>
 
-              {muscleGroup && (
-                <span className="ml-14 mt-2 inline-flex items-center rounded-full bg-steel/15 px-2.5 py-0.5 font-display text-[10px] uppercase tracking-wide text-steel">
-                  {muscleGroup}
-                </span>
-              )}
-
-              {embedUrl && (
-                <div className="ml-14 mt-2 aspect-video max-w-xs overflow-hidden rounded-sm border border-line">
-                  <iframe
-                    src={embedUrl}
-                    title={`Video hướng dẫn: ${ex.name}`}
-                    loading="lazy"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    allowFullScreen
-                    className="h-full w-full"
-                  />
+              {(muscleGroup || embedUrl || alternative) && (
+                <div className="ml-14 mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {muscleGroup && (
+                    <span className="inline-flex items-center rounded-full bg-steel/15 px-2.5 py-0.5 font-display text-[10px] uppercase tracking-wide text-steel">
+                      {muscleGroup}
+                    </span>
+                  )}
+                  {embedUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setPlayingIndex(i)}
+                      className="inline-flex items-center gap-1 rounded-full bg-rust/15 px-2.5 py-0.5 font-display text-[10px] uppercase tracking-wide text-rust"
+                    >
+                      ▶ Video
+                    </button>
+                  )}
+                  {alternative && (
+                    <span className="inline-flex items-center rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] text-muted">
+                      Thay thế: {alternative.name}
+                    </span>
+                  )}
                 </div>
-              )}
-
-              {alternative && (
-                <p className="ml-14 mt-2 text-xs text-muted">
-                  <span className="font-display uppercase tracking-wide text-faint">Nếu máy bận, thay bằng: </span>
-                  <span className="text-ink">
-                    {alternative.name} ({alternative.sets} · nghỉ {alternative.rest})
-                  </span>
-                </p>
               )}
             </div>
           );
@@ -369,6 +379,44 @@ export default function WorkoutChecklist({
           </div>,
           document.body
         )}
+
+      {playingIndex != null &&
+        (() => {
+          const raw = EXERCISE_VIDEOS[exercises[playingIndex]?.name ?? ""];
+          const embedUrl = raw ? toYouTubeEmbedUrl(raw) : null;
+          if (!embedUrl) return null;
+          return createPortal(
+            <div
+              className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 p-4"
+              onClick={() => setPlayingIndex(null)}
+            >
+              <button
+                type="button"
+                aria-label="Đóng"
+                className="fixed right-4 top-4 z-[1000] flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-2xl text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlayingIndex(null);
+                }}
+              >
+                ✕
+              </button>
+              <div
+                className="aspect-video w-full max-w-2xl overflow-hidden rounded-sm bg-black"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <iframe
+                  src={`${embedUrl}?autoplay=1`}
+                  title={`Video hướng dẫn: ${exercises[playingIndex]?.name}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  className="h-full w-full"
+                />
+              </div>
+            </div>,
+            document.body
+          );
+        })()}
     </div>
   );
 }
