@@ -271,7 +271,7 @@ export default function WorkoutChecklist({
           return (
             <div key={i} className="border-t border-dashed border-line pt-3 first:border-t-0 first:pt-0">
               <div className="flex items-center gap-3">
-                {thumb && (
+                {thumb ? (
                   <ZoomableImage
                     src={thumb}
                     alt={ex.name}
@@ -279,6 +279,10 @@ export default function WorkoutChecklist({
                     sizes="44px"
                     className="h-11 w-11 flex-shrink-0 rounded-sm border border-line"
                   />
+                ) : (
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-sm border border-line bg-paper-dim text-base text-faint">
+                    🏋️
+                  </div>
                 )}
                 <button
                   type="button"
