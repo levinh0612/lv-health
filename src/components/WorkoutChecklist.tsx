@@ -66,6 +66,7 @@ export default function WorkoutChecklist({
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [confirmUndoIndex, setConfirmUndoIndex] = useState<number | null>(null);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const captureIndexRef = useRef<number | null>(null);
@@ -82,6 +83,25 @@ export default function WorkoutChecklist({
       document.body.style.overflow = "";
     };
   }, [playingIndex]);
+
+  useEffect(() => {
+    if (!photoNotice) return;
+    const t = setTimeout(() => setPhotoNotice(null), 4500);
+    return () => clearTimeout(t);
+  }, [photoNotice]);
+
+  useEffect(() => {
+    const el = fileInputRef.current;
+    if (!el) return;
+    function onCancel() {
+      if (captureIndexRef.current != null) {
+        captureIndexRef.current = null;
+        setPhotoNotice("Bạn chưa chụp ảnh minh chứng nên bài tập chưa được đánh dấu hoàn thành.");
+      }
+    }
+    el.addEventListener("cancel", onCancel);
+    return () => el.removeEventListener("cancel", onCancel);
+  }, []);
 
   function persist(next: Exercise[], nextCompleted: boolean) {
     onMutate?.(next, nextCompleted);
@@ -134,10 +154,23 @@ export default function WorkoutChecklist({
     setConfirmUndoIndex(null);
   }
 
+  function swapWithAlternative(i: number) {
+    const ex = exercises[i];
+    if (ex.done) return;
+    const alt = EXERCISE_ALTERNATIVE[ex.name];
+    if (!alt) return;
+    const next = exercises.map((e, idx) =>
+      idx === i ? { ...e, name: alt.name, sets: alt.sets, rest: alt.rest } : e
+    );
+    setExercises(next);
+    persist(next, completed);
+  }
+
   async function handlePhotoSelected(file: File) {
     const i = captureIndexRef.current;
     if (i == null) return;
     const target = exercises[i];
+    setPhotoNotice(null);
     setUploadingIndex(i);
     try {
       const { url, publicId } = await uploadToCloudinaryWithId(file);
@@ -215,6 +248,12 @@ export default function WorkoutChecklist({
           if (file) handlePhotoSelected(file);
         }}
       />
+
+      {photoNotice && (
+        <div className="mb-3 rounded-sm border border-rust/30 bg-rust/10 px-3 py-2 text-xs text-rust">
+          {photoNotice}
+        </div>
+      )}
 
       {note && <p className="mb-3 text-sm text-muted">{note}</p>}
 
@@ -297,11 +336,20 @@ export default function WorkoutChecklist({
                       ▶ Video
                     </button>
                   )}
-                  {alternative && (
-                    <span className="inline-flex items-center rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] text-muted">
-                      Thay thế: {alternative.name}
-                    </span>
-                  )}
+                  {alternative &&
+                    (ex.done ? (
+                      <span className="inline-flex items-center rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] text-muted">
+                        Thay thế: {alternative.name}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => swapWithAlternative(i)}
+                        className="inline-flex items-center gap-1 rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] text-muted hover:bg-olive/15 hover:text-olive"
+                      >
+                        ⇄ Thay thế: {alternative.name}
+                      </button>
+                    ))}
                 </div>
               )}
             </div>

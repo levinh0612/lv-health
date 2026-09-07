@@ -227,6 +227,16 @@ export const EXERCISES_NO_PHOTO_NEEDED = new Set<string>([
   "Chạy nhanh / đạp xe hết sức",
   "Đi bộ hồi phục",
   "Thả lỏng + giãn cơ",
+  // Dumbbell/bodyweight alternatives (swapped in when the primary machine is occupied)
+  "Đẩy ngực tạ đơn trên ghế phẳng",
+  "Đẩy vai tạ đơn (ngồi)",
+  "Dumbbell fly trên ghế phẳng",
+  "Dead bug hoặc side plank",
+  "Overhead dumbbell tricep extension",
+  "Lying leg raise",
+  "Goblet squat (tạ đơn)",
+  "Romanian deadlift (tạ đơn)",
+  "Bulgarian split squat",
 ]);
 
 export const DOW_LABEL: Record<number, string> = {
