@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import type { TemplateExercise } from "@/lib/workoutTemplate";
-import { EXERCISE_IMAGES } from "@/lib/workoutTemplate";
+import { EXERCISE_IMAGES, EXERCISES_NO_PHOTO_NEEDED } from "@/lib/workoutTemplate";
 import ZoomableImage from "@/components/ZoomableImage";
 import { uploadToCloudinaryWithId, deleteCloudinaryPhoto } from "@/lib/cloudinary";
 
@@ -62,18 +62,23 @@ export default function WorkoutChecklist({
     });
   }
 
+  function needsPhoto(ex: Exercise) {
+    return !isCustom && !EXERCISES_NO_PHOTO_NEEDED.has(ex.name);
+  }
+
   function toggleExercise(i: number) {
     const ex = exercises[i];
-    if (!ex.done) {
-      // marking done requires a proof photo
+    if (!ex.done && needsPhoto(ex)) {
+      // marking done requires a proof photo (machine/cable exercises only)
       captureIndexRef.current = i;
       fileInputRef.current?.click();
       return;
     }
-    const next = exercises.map((e, idx) => (idx === i ? { ...e, done: false } : e));
+    const next = exercises.map((e, idx) => (idx === i ? { ...e, done: !e.done } : e));
+    const allDone = next.length > 0 && next.every((e) => e.done);
     setExercises(next);
-    setCompleted(next.length > 0 && next.every((e) => e.done));
-    persist(next, next.length > 0 && next.every((e) => e.done));
+    setCompleted(allDone);
+    persist(next, allDone);
   }
 
   async function handlePhotoSelected(file: File) {

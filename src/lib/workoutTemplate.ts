@@ -137,6 +137,22 @@ export const EXERCISE_IMAGES: Record<string, string> = {
     "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cat_Stretch/0.jpg",
 };
 
+// Exercises that don't use a gym machine/cable (dumbbell, bodyweight, or
+// unsupervised cardio) don't need a proof photo when checked done.
+export const EXERCISES_NO_PHOTO_NEEDED = new Set<string>([
+  "Incline dumbbell press",
+  "Lateral raise (tạ đơn nhẹ)",
+  "Plank",
+  "Bicep curl (tạ đơn)",
+  "Hanging knee raise",
+  "Hip thrust hoặc glute bridge",
+  "Calf raise",
+  "Khởi động đi bộ nhanh",
+  "Chạy nhanh / đạp xe hết sức",
+  "Đi bộ hồi phục",
+  "Thả lỏng + giãn cơ",
+]);
+
 export const DOW_LABEL: Record<number, string> = {
   0: "Chủ nhật",
   1: "Thứ 2",

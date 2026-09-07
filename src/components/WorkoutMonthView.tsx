@@ -11,6 +11,7 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
+import Link from "next/link";
 import clsx from "clsx";
 import { WORKOUT_TEMPLATE, DOW_LABEL } from "@/lib/workoutTemplate";
 
@@ -48,24 +49,24 @@ export default function WorkoutMonthView({
   return (
     <div className="rounded-sm border border-line bg-paper-card p-4">
       <div className="flex items-center justify-between">
-        <a
+        <Link
           href={`/workout?view=month&month=${prevMonth}`}
           className="font-display text-xs uppercase tracking-wide text-muted hover:text-ink"
         >
           ← Trước
-        </a>
+        </Link>
         <span className="font-display text-sm uppercase text-ink">
           Tháng {format(month, "MM/yyyy")}
         </span>
         {isCurrentMonth ? (
           <span className="w-16" />
         ) : (
-          <a
+          <Link
             href={`/workout?view=month&month=${nextMonth}`}
             className="font-display text-xs uppercase tracking-wide text-muted hover:text-ink"
           >
             Sau →
-          </a>
+          </Link>
         )}
       </div>
 
@@ -89,7 +90,7 @@ export default function WorkoutMonthView({
           const missed = !isRest && !isFuture && !row?.completed;
 
           return (
-            <a
+            <Link
               key={key}
               href={`/workout?date=${key}`}
               title={`${DOW_LABEL[d.getDay()]} · ${t.title}`}
@@ -105,7 +106,7 @@ export default function WorkoutMonthView({
             >
               <span>{format(d, "d")}</span>
               {!isRest && !isFuture && (row?.completed ? "✓" : "·")}
-            </a>
+            </Link>
           );
         })}
       </div>

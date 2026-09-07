@@ -1,5 +1,6 @@
 import { and, eq, gte, lte } from "drizzle-orm";
 import { addDays, endOfMonth, format, startOfMonth, startOfWeek } from "date-fns";
+import Link from "next/link";
 import clsx from "clsx";
 import { getDb } from "@/db";
 import { workoutDays } from "@/db/schema";
@@ -114,7 +115,7 @@ export default async function WorkoutPage({
           const isSelected = d === selectedDate;
 
           return (
-            <a
+            <Link
               key={d}
               href={`/workout?date=${d}`}
               className={clsx(
@@ -146,7 +147,7 @@ export default async function WorkoutPage({
                 {done && "✓"}
                 {extraCount > 0 && ` +${extraCount}`}
               </span>
-            </a>
+            </Link>
           );
         })}
       </div>
@@ -176,7 +177,7 @@ function ViewTabs({
 }) {
   return (
     <div className="mt-5 flex gap-1.5">
-      <a
+      <Link
         href={weekHref}
         className={clsx(
           "rounded-full px-3 py-1 font-display text-[11px] uppercase tracking-wide transition-colors",
@@ -184,8 +185,8 @@ function ViewTabs({
         )}
       >
         Tuần này
-      </a>
-      <a
+      </Link>
+      <Link
         href={monthHref}
         className={clsx(
           "rounded-full px-3 py-1 font-display text-[11px] uppercase tracking-wide transition-colors",
@@ -193,7 +194,7 @@ function ViewTabs({
         )}
       >
         Theo tháng
-      </a>
+      </Link>
     </div>
   );
 }

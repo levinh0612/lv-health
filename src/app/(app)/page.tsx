@@ -1,5 +1,6 @@
 import { asc, desc } from "drizzle-orm";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
+import Link from "next/link";
 import { getDb } from "@/db";
 import { bodyLogs, workoutDays, inbodyScans, goals } from "@/db/schema";
 import SectionHead from "@/components/SectionHead";
@@ -161,11 +162,11 @@ function QuickLink({
   }[accent];
 
   return (
-    <a
+    <Link
       href={href}
       className={`rounded-sm border bg-paper-card p-4 font-display text-sm uppercase tracking-wide transition-colors ${accentClass}`}
     >
       {title} →
-    </a>
+    </Link>
   );
 }
