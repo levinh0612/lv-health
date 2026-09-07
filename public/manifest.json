@@ -1,0 +1,17 @@
+{
+  "name": "Nhật Ký Sức Khỏe",
+  "short_name": "Sức Khỏe",
+  "description": "Theo dõi cân nặng, ảnh body, bữa ăn và lịch tập hàng tuần.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eeeae2",
+  "theme_color": "#1c1e22",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
