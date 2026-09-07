@@ -1,4 +1,4 @@
-import { asc, desc } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import Link from "next/link";
 import { getDb } from "@/db";
@@ -16,7 +16,11 @@ export default async function DashboardPage() {
 
   const [logs, workouts, scans, allScans, goalRows] = await Promise.all([
     db.select().from(bodyLogs).orderBy(asc(bodyLogs.date)),
-    db.select().from(workoutDays).orderBy(desc(workoutDays.date)),
+    db
+      .select()
+      .from(workoutDays)
+      .where(eq(workoutDays.session, 1))
+      .orderBy(desc(workoutDays.date)),
     db.select().from(inbodyScans).orderBy(desc(inbodyScans.date)).limit(1),
     db.select().from(inbodyScans).orderBy(asc(inbodyScans.date)),
     db.select().from(goals).limit(1),
