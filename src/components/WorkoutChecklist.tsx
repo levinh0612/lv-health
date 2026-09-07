@@ -19,6 +19,7 @@ type Exercise = TemplateExercise & {
   photoUrl?: string | null;
   photoPublicId?: string | null;
   photoAt?: string | null;
+  note?: string | null;
 };
 
 function toYouTubeEmbedUrl(url: string): string | null {
@@ -67,8 +68,12 @@ export default function WorkoutChecklist({
   const [confirmUndoIndex, setConfirmUndoIndex] = useState<number | null>(null);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
+  const [proofChoiceIndex, setProofChoiceIndex] = useState<number | null>(null);
+  const [noteModalIndex, setNoteModalIndex] = useState<number | null>(null);
+  const [noteText, setNoteText] = useState("");
   const [isPending, startTransition] = useTransition();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const captureIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -91,16 +96,20 @@ export default function WorkoutChecklist({
   }, [photoNotice]);
 
   useEffect(() => {
-    const el = fileInputRef.current;
-    if (!el) return;
     function onCancel() {
       if (captureIndexRef.current != null) {
         captureIndexRef.current = null;
         setPhotoNotice("Bạn chưa chụp ảnh minh chứng nên bài tập chưa được đánh dấu hoàn thành.");
       }
     }
-    el.addEventListener("cancel", onCancel);
-    return () => el.removeEventListener("cancel", onCancel);
+    const camera = cameraInputRef.current;
+    const gallery = galleryInputRef.current;
+    camera?.addEventListener("cancel", onCancel);
+    gallery?.addEventListener("cancel", onCancel);
+    return () => {
+      camera?.removeEventListener("cancel", onCancel);
+      gallery?.removeEventListener("cancel", onCancel);
+    };
   }, []);
 
   function persist(next: Exercise[], nextCompleted: boolean) {
@@ -141,12 +150,52 @@ export default function WorkoutChecklist({
       return;
     }
     if (needsPhoto(ex)) {
-      // marking done requires a proof photo (machine/cable exercises only)
-      captureIndexRef.current = i;
-      fileInputRef.current?.click();
+      // marking done requires proof (machine/cable exercises only) — let the
+      // user pick camera, gallery, or a written note instead
+      setProofChoiceIndex(i);
       return;
     }
     applyToggle(i);
+  }
+
+  function chooseCamera() {
+    if (proofChoiceIndex == null) return;
+    captureIndexRef.current = proofChoiceIndex;
+    setProofChoiceIndex(null);
+    cameraInputRef.current?.click();
+  }
+
+  function chooseGallery() {
+    if (proofChoiceIndex == null) return;
+    captureIndexRef.current = proofChoiceIndex;
+    setProofChoiceIndex(null);
+    galleryInputRef.current?.click();
+  }
+
+  function chooseNote() {
+    if (proofChoiceIndex == null) return;
+    setNoteModalIndex(proofChoiceIndex);
+    setNoteText("");
+    setProofChoiceIndex(null);
+  }
+
+  function saveNote() {
+    const i = noteModalIndex;
+    const text = noteText.trim();
+    if (i == null || !text) return;
+    const target = exercises[i];
+    if (target.photoPublicId) deleteCloudinaryPhoto(target.photoPublicId).catch(() => {});
+    const next = exercises.map((e, idx) =>
+      idx === i
+        ? { ...e, done: true, note: text, photoUrl: null, photoPublicId: null, photoAt: new Date().toISOString() }
+        : e
+    );
+    const allDone = next.length > 0 && next.every((e) => e.done);
+    setExercises(next);
+    setCompleted(allDone);
+    persist(next, allDone);
+    setNoteModalIndex(null);
+    setNoteText("");
   }
 
   function confirmUndo() {
@@ -179,7 +228,7 @@ export default function WorkoutChecklist({
       }
       const next = exercises.map((e, idx) =>
         idx === i
-          ? { ...e, done: true, photoUrl: url, photoPublicId: publicId, photoAt: new Date().toISOString() }
+          ? { ...e, done: true, photoUrl: url, photoPublicId: publicId, photoAt: new Date().toISOString(), note: null }
           : e
       );
       const allDone = next.length > 0 && next.every((e) => e.done);
@@ -237,10 +286,21 @@ export default function WorkoutChecklist({
   return (
     <div className="rounded-sm border border-line bg-paper-card p-4">
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) handlePhotoSelected(file);
+        }}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -281,7 +341,7 @@ export default function WorkoutChecklist({
                   />
                 ) : (
                   <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-sm border border-line bg-paper-dim text-base text-faint">
-                    🏋️
+                    {ex.note ? "📝" : "🏋️"}
                   </div>
                 )}
                 <button
@@ -310,6 +370,9 @@ export default function WorkoutChecklist({
                     <span className="block text-xs text-muted">
                       {uploading ? "Đang tải ảnh minh chứng..." : `${ex.sets} · nghỉ ${ex.rest}`}
                     </span>
+                    {ex.note && !uploading && (
+                      <span className="mt-0.5 block truncate text-xs italic text-faint">📝 {ex.note}</span>
+                    )}
                   </span>
                 </button>
                 {isCustom && (
@@ -425,6 +488,99 @@ export default function WorkoutChecklist({
                   className="rounded-sm bg-rust px-3 py-1.5 font-display text-xs uppercase tracking-wide text-paper"
                 >
                   Huỷ hoàn thành
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {proofChoiceIndex != null &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/50 p-4 sm:items-center"
+            onClick={() => setProofChoiceIndex(null)}
+          >
+            <div
+              className="w-full max-w-xs rounded-sm border border-line bg-paper-card p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="mb-3 text-sm text-ink">
+                Minh chứng cho{" "}
+                <span className="font-medium">{exercises[proofChoiceIndex]?.name}</span>
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={chooseCamera}
+                  className="rounded-sm border border-line px-3 py-2.5 text-left text-sm text-ink hover:border-rust"
+                >
+                  📷 Mở camera
+                </button>
+                <button
+                  type="button"
+                  onClick={chooseGallery}
+                  className="rounded-sm border border-line px-3 py-2.5 text-left text-sm text-ink hover:border-rust"
+                >
+                  🖼️ Chọn ảnh từ thư viện
+                </button>
+                <button
+                  type="button"
+                  onClick={chooseNote}
+                  className="rounded-sm border border-line px-3 py-2.5 text-left text-sm text-ink hover:border-rust"
+                >
+                  📝 Ghi nội dung thay thế
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProofChoiceIndex(null)}
+                  className="mt-1 rounded-sm px-3 py-2 text-center font-display text-xs uppercase tracking-wide text-muted"
+                >
+                  Huỷ
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {noteModalIndex != null &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4"
+            onClick={() => setNoteModalIndex(null)}
+          >
+            <div
+              className="w-full max-w-xs rounded-sm border border-line bg-paper-card p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="mb-2 text-sm text-ink">
+                Ghi nội dung minh chứng cho{" "}
+                <span className="font-medium">{exercises[noteModalIndex]?.name}</span>
+              </p>
+              <textarea
+                autoFocus
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="VD: Đã tập 4 hiệp, máy đông nên tạm ghi lại thay ảnh..."
+                rows={3}
+                className="w-full resize-none rounded-sm border border-line bg-white px-2.5 py-2 text-sm outline-none focus:border-steel"
+              />
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNoteModalIndex(null)}
+                  className="rounded-sm border border-line px-3 py-1.5 font-display text-xs uppercase tracking-wide text-muted"
+                >
+                  Huỷ
+                </button>
+                <button
+                  type="button"
+                  onClick={saveNote}
+                  disabled={!noteText.trim()}
+                  className="rounded-sm bg-ink px-3 py-1.5 font-display text-xs uppercase tracking-wide text-paper disabled:opacity-40"
+                >
+                  Lưu
                 </button>
               </div>
             </div>
