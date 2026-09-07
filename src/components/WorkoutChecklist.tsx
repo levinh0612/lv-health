@@ -1,10 +1,15 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import type { TemplateExercise } from "@/lib/workoutTemplate";
-import { EXERCISE_IMAGES, EXERCISES_NO_PHOTO_NEEDED } from "@/lib/workoutTemplate";
+import {
+  EXERCISE_IMAGES,
+  EXERCISES_NO_PHOTO_NEEDED,
+  EXERCISE_MUSCLE_GROUP,
+  EXERCISE_VIDEOS,
+  EXERCISE_ALTERNATIVE,
+} from "@/lib/workoutTemplate";
 import ZoomableImage from "@/components/ZoomableImage";
 import { uploadToCloudinaryWithId, deleteCloudinaryPhoto } from "@/lib/cloudinary";
 
@@ -24,6 +29,7 @@ export default function WorkoutChecklist({
   initialExercises,
   initialCompleted,
   isCustom = false,
+  onMutate,
 }: {
   date: string;
   session: number;
@@ -34,17 +40,19 @@ export default function WorkoutChecklist({
   initialExercises: Exercise[];
   initialCompleted: boolean;
   isCustom?: boolean;
+  onMutate?: (exercises: Exercise[], completed: boolean) => void;
 }) {
-  const router = useRouter();
   const [exercises, setExercises] = useState(initialExercises);
   const [completed, setCompleted] = useState(initialCompleted);
   const [newExercise, setNewExercise] = useState({ name: "", sets: "", rest: "" });
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const captureIndexRef = useRef<number | null>(null);
 
   function persist(next: Exercise[], nextCompleted: boolean) {
+    onMutate?.(next, nextCompleted);
     startTransition(async () => {
       await fetch("/api/workouts/day", {
         method: "POST",
@@ -58,7 +66,6 @@ export default function WorkoutChecklist({
           completed: nextCompleted,
         }),
       });
-      router.refresh();
     });
   }
 
@@ -173,57 +180,106 @@ export default function WorkoutChecklist({
         {exercises.map((ex, i) => {
           const thumb = ex.photoUrl ?? EXERCISE_IMAGES[ex.name];
           const uploading = uploadingIndex === i;
+          const muscleGroup = EXERCISE_MUSCLE_GROUP[ex.name];
+          const videoUrl = EXERCISE_VIDEOS[ex.name];
+          const alternative = EXERCISE_ALTERNATIVE[ex.name];
+          const hasInfo = Boolean(muscleGroup || videoUrl || alternative);
+          const expanded = expandedIndex === i;
           return (
-            <div
-              key={i}
-              className="flex items-center gap-3 border-t border-dashed border-line pt-2 first:border-t-0 first:pt-0"
-            >
-              {thumb && (
-                <ZoomableImage
-                  src={thumb}
-                  alt={ex.name}
-                  timestamp={ex.photoAt ?? undefined}
-                  sizes="44px"
-                  className="h-11 w-11 flex-shrink-0 rounded-sm border border-line"
-                />
-              )}
-              <button
-                type="button"
-                onClick={() => toggleExercise(i)}
-                disabled={uploading}
-                className="flex flex-1 items-center gap-2 text-left"
-              >
-                <span
-                  className={clsx(
-                    "inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-sm border",
-                    ex.done ? "border-rust bg-rust text-paper" : "border-line"
-                  )}
-                >
-                  {ex.done && "✓"}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span
-                    className={clsx(
-                      "block truncate text-sm font-medium",
-                      ex.done && "text-faint line-through"
-                    )}
-                  >
-                    {ex.name}
-                  </span>
-                  <span className="block text-xs text-muted">
-                    {uploading ? "Đang tải ảnh minh chứng..." : `${ex.sets} · nghỉ ${ex.rest}`}
-                  </span>
-                </span>
-              </button>
-              {isCustom && (
+            <div key={i} className="border-t border-dashed border-line pt-2 first:border-t-0 first:pt-0">
+              <div className="flex items-center gap-3">
+                {thumb && (
+                  <ZoomableImage
+                    src={thumb}
+                    alt={ex.name}
+                    timestamp={ex.photoAt ?? undefined}
+                    sizes="44px"
+                    className="h-11 w-11 flex-shrink-0 rounded-sm border border-line"
+                  />
+                )}
                 <button
                   type="button"
-                  onClick={() => removeExercise(i)}
-                  className="flex-shrink-0 px-1 text-faint hover:text-rust"
-                  aria-label="Xóa bài tập"
+                  onClick={() => toggleExercise(i)}
+                  disabled={uploading}
+                  className="flex flex-1 items-center gap-2 text-left"
                 >
-                  ✕
+                  <span
+                    className={clsx(
+                      "inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-sm border",
+                      ex.done ? "border-rust bg-rust text-paper" : "border-line"
+                    )}
+                  >
+                    {ex.done && "✓"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={clsx(
+                        "block truncate text-sm font-medium",
+                        ex.done && "text-faint line-through"
+                      )}
+                    >
+                      {ex.name}
+                    </span>
+                    <span className="block text-xs text-muted">
+                      {uploading ? "Đang tải ảnh minh chứng..." : `${ex.sets} · nghỉ ${ex.rest}`}
+                    </span>
+                  </span>
                 </button>
+                {hasInfo && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedIndex(expanded ? null : i)}
+                    className={clsx(
+                      "flex-shrink-0 rounded-full px-1.5 text-xs",
+                      expanded ? "text-rust" : "text-faint hover:text-rust"
+                    )}
+                    aria-label="Xem hướng dẫn bài tập"
+                  >
+                    ⓘ
+                  </button>
+                )}
+                {isCustom && (
+                  <button
+                    type="button"
+                    onClick={() => removeExercise(i)}
+                    className="flex-shrink-0 px-1 text-faint hover:text-rust"
+                    aria-label="Xóa bài tập"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {expanded && hasInfo && (
+                <div className="ml-14 mt-2 space-y-1.5 rounded-sm bg-paper-dim p-3 text-xs">
+                  {muscleGroup && (
+                    <p>
+                      <span className="font-display uppercase tracking-wide text-faint">Nhóm cơ: </span>
+                      <span className="text-ink">{muscleGroup}</span>
+                    </p>
+                  )}
+                  {videoUrl && (
+                    <p>
+                      <span className="font-display uppercase tracking-wide text-faint">Video hướng dẫn: </span>
+                      <a
+                        href={videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-steel underline"
+                      >
+                        Xem trên YouTube ↗
+                      </a>
+                    </p>
+                  )}
+                  {alternative && (
+                    <p>
+                      <span className="font-display uppercase tracking-wide text-faint">Nếu máy bận, thay bằng: </span>
+                      <span className="text-ink">
+                        {alternative.name} ({alternative.sets} · nghỉ {alternative.rest})
+                      </span>
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           );

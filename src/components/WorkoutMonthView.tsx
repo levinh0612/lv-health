@@ -1,5 +1,6 @@
+"use client";
+
 import {
-  addMonths,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
@@ -9,9 +10,7 @@ import {
   parseISO,
   startOfMonth,
   startOfWeek,
-  subMonths,
 } from "date-fns";
-import Link from "next/link";
 import clsx from "clsx";
 import { WORKOUT_TEMPLATE, DOW_LABEL } from "@/lib/workoutTemplate";
 
@@ -20,9 +19,19 @@ type Row = { date: string; completed: boolean };
 export default function WorkoutMonthView({
   monthParam,
   rows,
+  loading = false,
+  isCurrentMonth,
+  onPrevMonth,
+  onNextMonth,
+  onSelectDate,
 }: {
   monthParam: string; // yyyy-MM
   rows: Row[];
+  loading?: boolean;
+  isCurrentMonth: boolean;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  onSelectDate: (date: string) => void;
 }) {
   const month = parseISO(`${monthParam}-01`);
   const rowByDate = new Map(rows.map((r) => [r.date, r]));
@@ -42,31 +51,29 @@ export default function WorkoutMonthView({
     if (rowByDate.get(format(d, "yyyy-MM-dd"))?.completed) done += 1;
   }
 
-  const prevMonth = format(subMonths(month, 1), "yyyy-MM");
-  const nextMonth = format(addMonths(month, 1), "yyyy-MM");
-  const isCurrentMonth = isSameMonth(month, today);
-
   return (
-    <div className="rounded-sm border border-line bg-paper-card p-4">
+    <div className={clsx("rounded-sm border border-line bg-paper-card p-4 transition-opacity", loading && "opacity-50")}>
       <div className="flex items-center justify-between">
-        <Link
-          href={`/workout?view=month&month=${prevMonth}`}
+        <button
+          type="button"
+          onClick={onPrevMonth}
           className="font-display text-xs uppercase tracking-wide text-muted hover:text-ink"
         >
           ← Trước
-        </Link>
+        </button>
         <span className="font-display text-sm uppercase text-ink">
           Tháng {format(month, "MM/yyyy")}
         </span>
         {isCurrentMonth ? (
           <span className="w-16" />
         ) : (
-          <Link
-            href={`/workout?view=month&month=${nextMonth}`}
+          <button
+            type="button"
+            onClick={onNextMonth}
             className="font-display text-xs uppercase tracking-wide text-muted hover:text-ink"
           >
             Sau →
-          </Link>
+          </button>
         )}
       </div>
 
@@ -90,9 +97,10 @@ export default function WorkoutMonthView({
           const missed = !isRest && !isFuture && !row?.completed;
 
           return (
-            <Link
+            <button
+              type="button"
               key={key}
-              href={`/workout?date=${key}`}
+              onClick={() => onSelectDate(key)}
               title={`${DOW_LABEL[d.getDay()]} · ${t.title}`}
               className={clsx(
                 "flex aspect-square flex-col items-center justify-center rounded-sm border text-[11px]",
@@ -106,7 +114,7 @@ export default function WorkoutMonthView({
             >
               <span>{format(d, "d")}</span>
               {!isRest && !isFuture && (row?.completed ? "✓" : "·")}
-            </Link>
+            </button>
           );
         })}
       </div>

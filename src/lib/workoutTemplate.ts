@@ -137,6 +137,82 @@ export const EXERCISE_IMAGES: Record<string, string> = {
     "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cat_Stretch/0.jpg",
 };
 
+// Target muscle group per exercise, shown so the user knows what they're training.
+export const EXERCISE_MUSCLE_GROUP: Record<string, string> = {
+  "Đẩy ngực máy (chest press machine)": "Ngực",
+  "Incline dumbbell press": "Ngực trên",
+  "Đẩy vai máy (shoulder press machine)": "Vai",
+  "Cable fly": "Ngực (cô lập)",
+  "Lateral raise (tạ đơn nhẹ)": "Vai giữa",
+  Plank: "Cơ lõi / bụng",
+  "Máy elliptical hoặc xe đạp": "Tim mạch toàn thân",
+  "Đi bộ nghiêng dốc (treadmill incline)": "Tim mạch · đùi sau · mông",
+  "Lat pulldown": "Lưng xô",
+  "Seated cable row": "Lưng giữa",
+  "Face pull": "Vai sau · bả vai",
+  "Bicep curl (tạ đơn)": "Tay trước (bắp tay)",
+  "Tricep pushdown (cáp)": "Tay sau (bắp tay sau)",
+  "Hanging knee raise": "Bụng dưới",
+  "Leg press": "Đùi trước · mông",
+  "Squat máy Smith (tạ nhẹ, kỹ thuật trước)": "Đùi trước · mông",
+  "Leg curl (đùi sau)": "Đùi sau",
+  "Leg extension (đùi trước)": "Đùi trước",
+  "Hip thrust hoặc glute bridge": "Mông",
+  "Calf raise": "Bắp chân",
+  "Khởi động đi bộ nhanh": "Khởi động toàn thân",
+  "Chạy nhanh / đạp xe hết sức": "Tim mạch cường độ cao",
+  "Đi bộ hồi phục": "Phục hồi tim mạch",
+  "Thả lỏng + giãn cơ": "Giãn cơ toàn thân",
+};
+
+// One verified instructional video per exercise, where a distinct tutorial exists.
+export const EXERCISE_VIDEOS: Record<string, string> = {
+  "Đẩy ngực máy (chest press machine)": "https://www.youtube.com/shorts/Qu7-ceCvq7w",
+  "Incline dumbbell press": "https://www.youtube.com/watch?v=OC7Qs_SAO2E",
+  "Đẩy vai máy (shoulder press machine)": "https://www.youtube.com/watch?v=e5gJP7quyGk",
+  "Cable fly": "https://www.youtube.com/watch?v=ovFc-5YdcXw",
+  "Lateral raise (tạ đơn nhẹ)": "https://www.youtube.com/watch?v=Y29xKcze8Ik",
+  Plank: "https://www.youtube.com/watch?v=mwlp75MS6Rg",
+  "Máy elliptical hoặc xe đạp": "https://www.youtube.com/watch?v=RakIFxUmSpA",
+  "Đi bộ nghiêng dốc (treadmill incline)": "https://www.youtube.com/watch?v=9ccVxEvWtpA",
+  "Lat pulldown": "https://www.youtube.com/watch?v=6MLs17iyK9I",
+  "Seated cable row": "https://www.youtube.com/watch?v=OeLb503NZHk",
+  "Face pull": "https://www.youtube.com/watch?v=UMGpxwhsy_k",
+  "Bicep curl (tạ đơn)": "https://www.youtube.com/watch?v=XE_pHwbst04",
+  "Tricep pushdown (cáp)": "https://www.youtube.com/watch?v=-zLyUAo1gMw",
+  "Hanging knee raise": "https://www.youtube.com/watch?v=0BmrlKCfTPU",
+  "Leg press": "https://www.youtube.com/watch?v=K5n2vg3oZa4",
+  "Squat máy Smith (tạ nhẹ, kỹ thuật trước)": "https://www.youtube.com/watch?v=DUWK_gKcRCc",
+  "Leg curl (đùi sau)": "https://www.youtube.com/watch?v=d8VJCaT5qoI",
+  "Leg extension (đùi trước)": "https://www.youtube.com/watch?v=tTbJBUKnWU8",
+  "Hip thrust hoặc glute bridge": "https://www.youtube.com/watch?v=UmY5lVwpycE",
+  "Calf raise": "https://www.youtube.com/watch?v=ndQc4mz4mBU",
+};
+
+// A substitute exercise (same muscle group) for when the primary machine/cable is occupied.
+export const EXERCISE_ALTERNATIVE: Record<string, TemplateExercise> = {
+  "Đẩy ngực máy (chest press machine)": { name: "Đẩy ngực tạ đơn trên ghế phẳng", sets: "4 × 12", rest: "75s" },
+  "Incline dumbbell press": { name: "Đẩy ngực nghiêng máy Smith", sets: "3 × 12", rest: "75s" },
+  "Đẩy vai máy (shoulder press machine)": { name: "Đẩy vai tạ đơn (ngồi)", sets: "3 × 12", rest: "60s" },
+  "Cable fly": { name: "Dumbbell fly trên ghế phẳng", sets: "3 × 15", rest: "45s" },
+  "Lateral raise (tạ đơn nhẹ)": { name: "Cable lateral raise", sets: "3 × 15", rest: "45s" },
+  Plank: { name: "Dead bug hoặc side plank", sets: "3 × 40s", rest: "30s" },
+  "Máy elliptical hoặc xe đạp": { name: "Máy chèo thuyền (rowing machine)", sets: "30 phút", rest: "Vừa" },
+  "Đi bộ nghiêng dốc (treadmill incline)": { name: "Máy StairMaster", sets: "10 phút", rest: "Vừa" },
+  "Lat pulldown": { name: "Assisted pull-up machine", sets: "4 × 12", rest: "75s" },
+  "Seated cable row": { name: "Chest-supported row (máy)", sets: "3 × 12", rest: "75s" },
+  "Face pull": { name: "Reverse pec-deck fly", sets: "3 × 15", rest: "45s" },
+  "Bicep curl (tạ đơn)": { name: "Cable curl", sets: "3 × 12", rest: "45s" },
+  "Tricep pushdown (cáp)": { name: "Overhead dumbbell tricep extension", sets: "3 × 12", rest: "45s" },
+  "Hanging knee raise": { name: "Lying leg raise", sets: "3 × 12", rest: "45s" },
+  "Leg press": { name: "Squat máy Hack", sets: "4 × 12", rest: "90s" },
+  "Squat máy Smith (tạ nhẹ, kỹ thuật trước)": { name: "Goblet squat (tạ đơn)", sets: "3 × 12", rest: "90s" },
+  "Leg curl (đùi sau)": { name: "Romanian deadlift (tạ đơn)", sets: "3 × 12", rest: "60s" },
+  "Leg extension (đùi trước)": { name: "Bulgarian split squat", sets: "3 × 12", rest: "60s" },
+  "Hip thrust hoặc glute bridge": { name: "Cable pull-through", sets: "3 × 15", rest: "60s" },
+  "Calf raise": { name: "Standing calf raise (máy Smith)", sets: "3 × 20", rest: "30s" },
+};
+
 // Exercises that don't use a gym machine/cable (dumbbell, bodyweight, or
 // unsupervised cardio) don't need a proof photo when checked done.
 export const EXERCISES_NO_PHOTO_NEEDED = new Set<string>([

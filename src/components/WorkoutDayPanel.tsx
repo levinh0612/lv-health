@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import WorkoutChecklist from "@/components/WorkoutChecklist";
 import type { DayTemplate } from "@/lib/workoutTemplate";
 
 type Exercise = { name: string; sets: string; rest: string; done: boolean };
-type SessionRow = {
+export type SessionRow = {
   session: number;
   dayType: string;
   title: string;
@@ -19,12 +18,13 @@ export default function WorkoutDayPanel({
   date,
   template,
   dbSessions,
+  onSessionsChange,
 }: {
   date: string;
   template: DayTemplate;
   dbSessions: SessionRow[];
+  onSessionsChange?: (sessions: SessionRow[]) => void;
 }) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const session1FromDb = dbSessions.find((s) => s.session === 1);
@@ -46,34 +46,40 @@ export default function WorkoutDayPanel({
 
   function addSession() {
     const nextNum = Math.max(...sessions.map((s) => s.session)) + 1;
+    const newSession: SessionRow = {
+      session: nextNum,
+      dayType: "custom",
+      title: `Buổi ${nextNum}`,
+      exercises: [],
+      completed: false,
+    };
+    onSessionsChange?.([...sessions, newSession]);
+    setActiveSession(nextNum);
     startTransition(async () => {
       await fetch("/api/workouts/day", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date,
-          session: nextNum,
-          dayType: "custom",
-          title: `Buổi ${nextNum}`,
-          exercises: [],
-          completed: false,
-        }),
+        body: JSON.stringify({ date, ...newSession }),
       });
-      setActiveSession(nextNum);
-      router.refresh();
     });
   }
 
   function removeSession(session: number) {
+    onSessionsChange?.(sessions.filter((s) => s.session !== session));
+    setActiveSession(1);
     startTransition(async () => {
       await fetch("/api/workouts/day", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date, session }),
       });
-      setActiveSession(1);
-      router.refresh();
     });
+  }
+
+  function handleChecklistMutate(exercises: Exercise[], completed: boolean) {
+    onSessionsChange?.(
+      sessions.map((s) => (s.session === active.session ? { ...s, exercises, completed } : s))
+    );
   }
 
   return (
@@ -124,6 +130,7 @@ export default function WorkoutDayPanel({
         initialExercises={active.exercises}
         initialCompleted={active.completed}
         isCustom={active.session > 1}
+        onMutate={handleChecklistMutate}
       />
     </div>
   );
