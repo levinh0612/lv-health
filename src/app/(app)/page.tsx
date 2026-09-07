@@ -5,6 +5,7 @@ import { bodyLogs, workoutDays, inbodyScans } from "@/db/schema";
 import SectionHead from "@/components/SectionHead";
 import StatCard from "@/components/StatCard";
 import TrendChart, { TrendPoint } from "@/components/TrendChart";
+import BodySilhouette from "@/components/BodySilhouette";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,19 @@ export default async function DashboardPage() {
         />
         <StatCard label="Chuỗi ngày tập" value={`${streak} 🔥`} />
       </div>
+
+      {latestScan?.segmentFat && latestScan?.segmentMuscle && (
+        <>
+          <SectionHead
+            title="Phân tích từng vùng"
+            note="Theo bản đo InBody gần nhất"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <BodySilhouette title="Mỡ" kind="fat" segments={latestScan.segmentFat} />
+            <BodySilhouette title="Cơ" kind="muscle" segments={latestScan.segmentMuscle} />
+          </div>
+        </>
+      )}
 
       <SectionHead
         title="Xu hướng"

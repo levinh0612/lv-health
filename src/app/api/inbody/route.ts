@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
       visceralFatLevel: body.visceralFatLevel ?? null,
       bmrKcal: body.bmrKcal ?? null,
       desirableWeightKg: body.desirableWeightKg ?? null,
+      photoUrl: body.photoUrl ?? null,
+      segmentFat: body.segmentFat ?? null,
+      segmentMuscle: body.segmentMuscle ?? null,
       rawData: body.rawData ?? null,
     })
     .returning();

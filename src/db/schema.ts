@@ -45,6 +45,15 @@ export const workoutDays = pgTable("workout_days", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export type SegmentStatus = "under" | "standard" | "over";
+export type BodySegments = {
+  leftArm: SegmentStatus;
+  rightArm: SegmentStatus;
+  trunk: SegmentStatus;
+  leftLeg: SegmentStatus;
+  rightLeg: SegmentStatus;
+};
+
 export const inbodyScans = pgTable("inbody_scans", {
   id: serial("id").primaryKey(),
   date: date("date").notNull(),
@@ -56,6 +65,9 @@ export const inbodyScans = pgTable("inbody_scans", {
   visceralFatLevel: real("visceral_fat_level"),
   bmrKcal: real("bmr_kcal"),
   desirableWeightKg: real("desirable_weight_kg"),
+  photoUrl: text("photo_url"),
+  segmentFat: jsonb("segment_fat").$type<BodySegments>(),
+  segmentMuscle: jsonb("segment_muscle").$type<BodySegments>(),
   rawData: jsonb("raw_data"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

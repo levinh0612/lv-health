@@ -1,9 +1,11 @@
 import { desc } from "drizzle-orm";
 import { format, parseISO } from "date-fns";
+import Image from "next/image";
 import { getDb } from "@/db";
 import { inbodyScans } from "@/db/schema";
 import SectionHead from "@/components/SectionHead";
 import InbodyForm from "@/components/InbodyForm";
+import BodySilhouette from "@/components/BodySilhouette";
 
 export const dynamic = "force-dynamic";
 
@@ -32,36 +34,51 @@ export default async function InbodyPage() {
         <p className="text-sm text-faint">Chưa có bản đo nào.</p>
       )}
 
-      <div className="overflow-x-auto rounded-sm border border-line bg-paper-card">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead>
-            <tr className="text-left font-display text-[11px] uppercase text-faint">
-              <th className="p-3">Ngày</th>
-              <th className="p-3">Cân nặng</th>
-              <th className="p-3">BMI</th>
-              <th className="p-3">Mỡ</th>
-              <th className="p-3">Cơ xương</th>
-              <th className="p-3">BMR</th>
-            </tr>
-          </thead>
-          <tbody>
-            {scans.map((s) => (
-              <tr key={s.id} className="border-t border-dashed border-line">
-                <td className="p-3 font-medium">
+      <div className="space-y-4">
+        {scans.map((s) => (
+          <div key={s.id} className="rounded-sm border border-line bg-paper-card p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <span className="font-display text-sm uppercase text-ink">
                   {format(parseISO(s.date), "dd/MM/yyyy")}
-                </td>
-                <td className="p-3 text-muted">{s.weightKg ?? "—"} kg</td>
-                <td className="p-3 text-muted">{s.bmi ?? "—"}</td>
-                <td className="p-3 text-muted">
-                  {s.bodyFatKg ?? "—"} kg{" "}
-                  {s.bodyFatPercent ? `(${s.bodyFatPercent}%)` : ""}
-                </td>
-                <td className="p-3 text-muted">{s.skeletalMuscleKg ?? "—"} kg</td>
-                <td className="p-3 text-muted">{s.bmrKcal ?? "—"} kcal</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </span>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                  <span>{s.weightKg ?? "—"} kg</span>
+                  <span>BMI {s.bmi ?? "—"}</span>
+                  <span>
+                    Mỡ {s.bodyFatKg ?? "—"} kg{" "}
+                    {s.bodyFatPercent ? `(${s.bodyFatPercent}%)` : ""}
+                  </span>
+                  <span>Cơ {s.skeletalMuscleKg ?? "—"} kg</span>
+                  <span>BMR {s.bmrKcal ?? "—"} kcal</span>
+                </div>
+              </div>
+              {s.photoUrl && (
+                <div className="relative h-20 w-16 flex-shrink-0 overflow-hidden rounded-sm border border-line">
+                  <Image
+                    src={s.photoUrl}
+                    alt=""
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              )}
+            </div>
+
+            {(s.segmentFat || s.segmentMuscle) && (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {s.segmentFat && (
+                  <BodySilhouette title="Mỡ" kind="fat" segments={s.segmentFat} />
+                )}
+                {s.segmentMuscle && (
+                  <BodySilhouette title="Cơ" kind="muscle" segments={s.segmentMuscle} />
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
