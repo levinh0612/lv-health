@@ -13,10 +13,11 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const db = getDb();
 
-  const [logs, workouts, scans, goalRows] = await Promise.all([
+  const [logs, workouts, scans, allScans, goalRows] = await Promise.all([
     db.select().from(bodyLogs).orderBy(asc(bodyLogs.date)),
     db.select().from(workoutDays).orderBy(desc(workoutDays.date)),
     db.select().from(inbodyScans).orderBy(desc(inbodyScans.date)).limit(1),
+    db.select().from(inbodyScans).orderBy(asc(inbodyScans.date)),
     db.select().from(goals).limit(1),
   ]);
 
@@ -24,12 +25,30 @@ export default async function DashboardPage() {
   const latestScan = scans[0];
   const latestLog = logs[logs.length - 1];
 
-  const trend: TrendPoint[] = logs.slice(-12).map((l) => ({
-    date: format(parseISO(l.date), "dd/MM"),
-    weight: l.weightKg,
-    bodyFat: l.bodyFatKg,
-    muscle: l.skeletalMuscleKg,
-  }));
+  // Merge weekly body-log entries with InBody scans into one timeline so the
+  // trend chart isn't empty just because only InBody data exists so far.
+  const trend: TrendPoint[] = [
+    ...logs.map((l) => ({
+      dateKey: l.date,
+      weight: l.weightKg,
+      bodyFat: l.bodyFatKg,
+      muscle: l.skeletalMuscleKg,
+    })),
+    ...allScans.map((s) => ({
+      dateKey: s.date,
+      weight: s.weightKg,
+      bodyFat: s.bodyFatKg,
+      muscle: s.skeletalMuscleKg,
+    })),
+  ]
+    .sort((a, b) => (a.dateKey < b.dateKey ? -1 : 1))
+    .slice(-12)
+    .map((p) => ({
+      date: format(parseISO(p.dateKey), "dd/MM"),
+      weight: p.weight,
+      bodyFat: p.bodyFat,
+      muscle: p.muscle,
+    }));
 
   const streak = computeStreak(workouts);
 

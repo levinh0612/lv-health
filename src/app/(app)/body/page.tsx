@@ -64,6 +64,7 @@ export default async function BodyPage() {
                   <ZoomableImage
                     key={i}
                     src={url}
+                    timestamp={log.createdAt}
                     sizes="96px"
                     className="h-28 w-24 flex-shrink-0 rounded-sm border border-line"
                   />

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import { format } from "date-fns";
 import clsx from "clsx";
 
 export default function ZoomableImage({
@@ -10,11 +11,13 @@ export default function ZoomableImage({
   alt = "",
   className,
   sizes,
+  timestamp,
 }: {
   src: string;
   alt?: string;
   className?: string;
   sizes?: string;
+  timestamp?: string | Date;
 }) {
   const [open, setOpen] = useState(false);
   const [zoomed, setZoomed] = useState(false);
@@ -90,6 +93,15 @@ export default function ZoomableImage({
                 unoptimized
               />
             </div>
+
+            {timestamp && (
+              <div
+                className="fixed bottom-4 left-1/2 z-[1000] -translate-x-1/2 rounded-full bg-white/20 px-3 py-1 font-display text-xs tracking-wide text-white"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {format(new Date(timestamp), "dd-MM-yyyy HH:mm")}
+              </div>
+            )}
           </div>,
           document.body
         )}

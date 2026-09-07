@@ -59,7 +59,12 @@ export default async function MealsPage() {
             className="overflow-hidden rounded-sm border border-line bg-paper-card"
           >
             {m.photoUrl ? (
-              <ZoomableImage src={m.photoUrl} sizes="200px" className="aspect-square w-full" />
+              <ZoomableImage
+                src={m.photoUrl}
+                timestamp={m.datetime}
+                sizes="200px"
+                className="aspect-square w-full"
+              />
             ) : (
               <div className="flex aspect-square items-center justify-center bg-paper-dim text-xs text-faint">
                 Không ảnh

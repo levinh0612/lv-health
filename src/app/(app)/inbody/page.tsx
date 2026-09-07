@@ -58,6 +58,7 @@ export default async function InbodyPage() {
               {s.photoUrl && (
                 <ZoomableImage
                   src={s.photoUrl}
+                  timestamp={s.createdAt}
                   sizes="64px"
                   className="h-20 w-16 flex-shrink-0 rounded-sm border border-line"
                 />

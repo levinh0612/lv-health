@@ -42,7 +42,17 @@ export const workoutDays = pgTable(
     dayType: text("day_type").notNull(), // strength | cardio | hiit | rest
     title: text("title").notNull(),
     exercises: jsonb("exercises")
-      .$type<{ name: string; sets: string; rest: string; done: boolean }[]>()
+      .$type<
+        {
+          name: string;
+          sets: string;
+          rest: string;
+          done: boolean;
+          photoUrl?: string | null;
+          photoPublicId?: string | null;
+          photoAt?: string | null;
+        }[]
+      >()
       .notNull()
       .default([]),
     completed: boolean("completed").notNull().default(false),

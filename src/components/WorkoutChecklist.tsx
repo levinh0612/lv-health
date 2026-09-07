@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import type { TemplateExercise } from "@/lib/workoutTemplate";
 import { EXERCISE_IMAGES } from "@/lib/workoutTemplate";
 import ZoomableImage from "@/components/ZoomableImage";
+import { uploadToCloudinaryWithId, deleteCloudinaryPhoto } from "@/lib/cloudinary";
 
-type Exercise = TemplateExercise & { done: boolean };
+type Exercise = TemplateExercise & {
+  done: boolean;
+  photoUrl?: string | null;
+  photoPublicId?: string | null;
+  photoAt?: string | null;
+};
 
 export default function WorkoutChecklist({
   date,
@@ -33,7 +39,10 @@ export default function WorkoutChecklist({
   const [exercises, setExercises] = useState(initialExercises);
   const [completed, setCompleted] = useState(initialCompleted);
   const [newExercise, setNewExercise] = useState({ name: "", sets: "", rest: "" });
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const captureIndexRef = useRef<number | null>(null);
 
   function persist(next: Exercise[], nextCompleted: boolean) {
     startTransition(async () => {
@@ -54,16 +63,47 @@ export default function WorkoutChecklist({
   }
 
   function toggleExercise(i: number) {
-    const next = exercises.map((ex, idx) =>
-      idx === i ? { ...ex, done: !ex.done } : ex
-    );
-    const allDone = next.length > 0 && next.every((ex) => ex.done);
+    const ex = exercises[i];
+    if (!ex.done) {
+      // marking done requires a proof photo
+      captureIndexRef.current = i;
+      fileInputRef.current?.click();
+      return;
+    }
+    const next = exercises.map((e, idx) => (idx === i ? { ...e, done: false } : e));
     setExercises(next);
-    setCompleted(allDone);
-    persist(next, allDone);
+    setCompleted(next.length > 0 && next.every((e) => e.done));
+    persist(next, next.length > 0 && next.every((e) => e.done));
+  }
+
+  async function handlePhotoSelected(file: File) {
+    const i = captureIndexRef.current;
+    if (i == null) return;
+    const target = exercises[i];
+    setUploadingIndex(i);
+    try {
+      const { url, publicId } = await uploadToCloudinaryWithId(file);
+      if (target.photoPublicId) {
+        deleteCloudinaryPhoto(target.photoPublicId).catch(() => {});
+      }
+      const next = exercises.map((e, idx) =>
+        idx === i
+          ? { ...e, done: true, photoUrl: url, photoPublicId: publicId, photoAt: new Date().toISOString() }
+          : e
+      );
+      const allDone = next.length > 0 && next.every((e) => e.done);
+      setExercises(next);
+      setCompleted(allDone);
+      persist(next, allDone);
+    } finally {
+      setUploadingIndex(null);
+      captureIndexRef.current = null;
+    }
   }
 
   function removeExercise(i: number) {
+    const target = exercises[i];
+    if (target.photoPublicId) deleteCloudinaryPhoto(target.photoPublicId).catch(() => {});
     const next = exercises.filter((_, idx) => idx !== i);
     setExercises(next);
     persist(next, next.length > 0 && next.every((ex) => ex.done));
@@ -105,6 +145,19 @@ export default function WorkoutChecklist({
 
   return (
     <div className="rounded-sm border border-line bg-paper-card p-4">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) handlePhotoSelected(file);
+        }}
+      />
+
       {note && <p className="mb-3 text-sm text-muted">{note}</p>}
 
       {exercises.length === 0 && (
@@ -113,16 +166,18 @@ export default function WorkoutChecklist({
 
       <div className="space-y-2">
         {exercises.map((ex, i) => {
-          const img = EXERCISE_IMAGES[ex.name];
+          const thumb = ex.photoUrl ?? EXERCISE_IMAGES[ex.name];
+          const uploading = uploadingIndex === i;
           return (
             <div
               key={i}
               className="flex items-center gap-3 border-t border-dashed border-line pt-2 first:border-t-0 first:pt-0"
             >
-              {img && (
+              {thumb && (
                 <ZoomableImage
-                  src={img}
+                  src={thumb}
                   alt={ex.name}
+                  timestamp={ex.photoAt ?? undefined}
                   sizes="44px"
                   className="h-11 w-11 flex-shrink-0 rounded-sm border border-line"
                 />
@@ -130,6 +185,7 @@ export default function WorkoutChecklist({
               <button
                 type="button"
                 onClick={() => toggleExercise(i)}
+                disabled={uploading}
                 className="flex flex-1 items-center gap-2 text-left"
               >
                 <span
@@ -150,7 +206,7 @@ export default function WorkoutChecklist({
                     {ex.name}
                   </span>
                   <span className="block text-xs text-muted">
-                    {ex.sets} · nghỉ {ex.rest}
+                    {uploading ? "Đang tải ảnh minh chứng..." : `${ex.sets} · nghỉ ${ex.rest}`}
                   </span>
                 </span>
               </button>

@@ -26,9 +26,11 @@ function adviceFor(kind: "fat" | "muscle", status: SegmentStatus): string {
   return status === "under" ? "Nên tăng cơ vùng này" : "Cơ phát triển tốt";
 }
 
-// Vertical anchor points (% of the diagram's height) that each callout's
-// connector line reaches out to, matching the SVG geometry below.
-const ROW_TOP = { arm: 37.5, trunk: 56, leg: 77 };
+// Everything below is positioned on one shared 320×200 coordinate system,
+// expressed purely as percentages — so the whole diagram (figure + label
+// callouts) scales together at any container width instead of the figure
+// staying a fixed pixel size while the callouts float off to the side.
+const ROW_TOP = { arm: 37.5, trunk: 50, leg: 77 };
 
 export default function BodySilhouette({
   title,
@@ -47,19 +49,15 @@ export default function BodySilhouette({
         {title}
       </div>
 
-      <div className="relative mx-auto h-64 max-w-full" style={{ width: "min(100%, 360px)" }}>
-        <svg
-          viewBox="0 0 120 200"
-          className="absolute left-1/2 top-0 h-full -translate-x-1/2"
-          aria-hidden
-        >
-          <circle cx="60" cy="18" r="14" fill="var(--line)" />
+      <div className="relative w-full" style={{ aspectRatio: "320 / 210" }}>
+        <svg viewBox="0 0 320 200" className="absolute inset-x-0 top-0 h-full w-full" aria-hidden>
+          <circle cx="160" cy="18" r="14" fill="var(--line)" />
           {/* rendered on the viewer's left = the person's right side */}
-          <rect x="14" y="40" width="16" height="70" rx="8" fill={c("rightArm")} />
-          <rect x="90" y="40" width="16" height="70" rx="8" fill={c("leftArm")} />
-          <rect x="36" y="36" width="48" height="78" rx="10" fill={c("trunk")} />
-          <rect x="38" y="118" width="18" height="72" rx="8" fill={c("rightLeg")} />
-          <rect x="64" y="118" width="18" height="72" rx="8" fill={c("leftLeg")} />
+          <rect x="112" y="40" width="14" height="70" rx="7" fill={c("rightArm")} />
+          <rect x="194" y="40" width="14" height="70" rx="7" fill={c("leftArm")} />
+          <rect x="140" y="36" width="40" height="78" rx="9" fill={c("trunk")} />
+          <rect x="142" y="118" width="15" height="72" rx="7" fill={c("rightLeg")} />
+          <rect x="163" y="118" width="15" height="72" rx="7" fill={c("leftLeg")} />
         </svg>
 
         <Callout side="left" top={ROW_TOP.arm} label="Tay phải" kind={kind} detail={segments.rightArm} />
@@ -88,31 +86,29 @@ function Callout({
   const color = colorFor(kind, detail.status);
   const alarming = kind === "fat" && detail.status === "over";
 
+  // The callout column is 30% of the diagram's width, with a 5%-wide gap
+  // between it and the figure — i.e. a connector 5/30 = 16.7% as wide as
+  // this callout box itself.
   return (
     <div
       className={clsx(
-        "absolute w-[42%] text-[10.5px] leading-tight",
-        side === "left" ? "right-1/2 mr-[70px] text-right" : "left-1/2 ml-[70px] text-left"
+        "absolute text-[10.5px] leading-tight",
+        side === "left" ? "right-[70%] text-right" : "left-[70%] text-left"
       )}
-      style={{ top: `${top}%`, transform: "translateY(-50%)" }}
+      style={{ top: `${top}%`, width: "30%", transform: "translateY(-50%)" }}
     >
       <div
-        className={clsx(
-          "absolute top-1/2 h-px w-[62px] border-t border-dashed",
-          side === "left" ? "-right-[62px]" : "-left-[62px]"
-        )}
-        style={{ borderColor: color }}
+        className="absolute top-1/2 h-px border-t border-dashed"
+        style={{
+          borderColor: color,
+          width: "16.7%",
+          ...(side === "left" ? { right: "-16.7%" } : { left: "-16.7%" }),
+        }}
         aria-hidden
       />
-      <span
-        className={clsx("inline-block h-1.5 w-1.5 rounded-full align-middle")}
-        style={{ background: color }}
-      />
+      <span className="inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: color }} />
       <span className="text-ink"> {label}: </span>
-      <span
-        className={clsx("font-medium", alarming && "font-semibold")}
-        style={{ color }}
-      >
+      <span className={clsx("font-medium", alarming && "font-semibold")} style={{ color }}>
         {statusLabelFor(kind, detail.status)}
       </span>
       {detail.percent != null && <span className="text-faint"> ({detail.percent}%)</span>}
