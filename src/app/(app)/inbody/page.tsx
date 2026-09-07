@@ -1,11 +1,11 @@
 import { desc } from "drizzle-orm";
 import { format, parseISO } from "date-fns";
-import Image from "next/image";
 import { getDb } from "@/db";
 import { inbodyScans } from "@/db/schema";
 import SectionHead from "@/components/SectionHead";
 import InbodyForm from "@/components/InbodyForm";
 import BodySilhouette from "@/components/BodySilhouette";
+import ZoomableImage from "@/components/ZoomableImage";
 
 export const dynamic = "force-dynamic";
 
@@ -54,16 +54,11 @@ export default async function InbodyPage() {
                 </div>
               </div>
               {s.photoUrl && (
-                <div className="relative h-20 w-16 flex-shrink-0 overflow-hidden rounded-sm border border-line">
-                  <Image
-                    src={s.photoUrl}
-                    alt=""
-                    fill
-                    sizes="64px"
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
+                <ZoomableImage
+                  src={s.photoUrl}
+                  sizes="64px"
+                  className="h-20 w-16 flex-shrink-0 rounded-sm border border-line"
+                />
               )}
             </div>
 

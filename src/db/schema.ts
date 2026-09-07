@@ -7,6 +7,8 @@ import {
   real,
   jsonb,
   boolean,
+  integer,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const bodyLogs = pgTable("body_logs", {
@@ -31,28 +33,42 @@ export const meals = pgTable("meals", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const workoutDays = pgTable("workout_days", {
-  id: serial("id").primaryKey(),
-  date: date("date").notNull().unique(),
-  dayType: text("day_type").notNull(), // strength | cardio | hiit | rest
-  title: text("title").notNull(),
-  exercises: jsonb("exercises")
-    .$type<{ name: string; sets: string; rest: string; done: boolean }[]>()
-    .notNull()
-    .default([]),
-  completed: boolean("completed").notNull().default(false),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const workoutDays = pgTable(
+  "workout_days",
+  {
+    id: serial("id").primaryKey(),
+    date: date("date").notNull(),
+    session: integer("session").notNull().default(1), // 1 = buổi chính, 2+ = buổi thêm trong ngày
+    dayType: text("day_type").notNull(), // strength | cardio | hiit | rest
+    title: text("title").notNull(),
+    exercises: jsonb("exercises")
+      .$type<{ name: string; sets: string; rest: string; done: boolean }[]>()
+      .notNull()
+      .default([]),
+    completed: boolean("completed").notNull().default(false),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.date, table.session)]
+);
 
 export type SegmentStatus = "under" | "standard" | "over";
+export type SegmentDetail = { status: SegmentStatus; percent?: number | null };
 export type BodySegments = {
-  leftArm: SegmentStatus;
-  rightArm: SegmentStatus;
-  trunk: SegmentStatus;
-  leftLeg: SegmentStatus;
-  rightLeg: SegmentStatus;
+  leftArm: SegmentDetail;
+  rightArm: SegmentDetail;
+  trunk: SegmentDetail;
+  leftLeg: SegmentDetail;
+  rightLeg: SegmentDetail;
 };
+
+export const goals = pgTable("goals", {
+  id: serial("id").primaryKey(),
+  targetWeightKg: real("target_weight_kg").notNull(),
+  startWeightKg: real("start_weight_kg"),
+  targetDate: date("target_date"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 export const inbodyScans = pgTable("inbody_scans", {
   id: serial("id").primaryKey(),

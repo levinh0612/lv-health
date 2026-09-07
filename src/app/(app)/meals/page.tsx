@@ -1,11 +1,12 @@
 import { desc } from "drizzle-orm";
 import { format } from "date-fns";
-import Image from "next/image";
 import clsx from "clsx";
 import { getDb } from "@/db";
 import { meals } from "@/db/schema";
 import SectionHead from "@/components/SectionHead";
 import MealForm from "@/components/MealForm";
+import ZoomableImage from "@/components/ZoomableImage";
+import MealSuggestion from "@/components/MealSuggestion";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,10 @@ export default async function MealsPage() {
       </h1>
 
       <div className="mt-6">
+        <MealSuggestion />
+      </div>
+
+      <div className="mt-6">
         <MealForm />
       </div>
 
@@ -54,16 +59,7 @@ export default async function MealsPage() {
             className="overflow-hidden rounded-sm border border-line bg-paper-card"
           >
             {m.photoUrl ? (
-              <div className="relative aspect-square w-full">
-                <Image
-                  src={m.photoUrl}
-                  alt=""
-                  fill
-                  sizes="200px"
-                  className="object-cover"
-                  unoptimized
-                />
-              </div>
+              <ZoomableImage src={m.photoUrl} sizes="200px" className="aspect-square w-full" />
             ) : (
               <div className="flex aspect-square items-center justify-center bg-paper-dim text-xs text-faint">
                 Không ảnh

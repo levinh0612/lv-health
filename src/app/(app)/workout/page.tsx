@@ -5,7 +5,7 @@ import { getDb } from "@/db";
 import { workoutDays } from "@/db/schema";
 import { WORKOUT_TEMPLATE, DOW_LABEL } from "@/lib/workoutTemplate";
 import SectionHead from "@/components/SectionHead";
-import WorkoutChecklist from "@/components/WorkoutChecklist";
+import WorkoutDayPanel from "@/components/WorkoutDayPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -33,13 +33,24 @@ export default async function WorkoutPage({
       )
     );
 
-  const rowByDate = new Map(rows.map((r) => [r.date, r]));
+  const rowsByDate = new Map<string, typeof rows>();
+  for (const r of rows) {
+    const list = rowsByDate.get(r.date) ?? [];
+    list.push(r);
+    rowsByDate.set(r.date, list);
+  }
 
   const selectedTemplate = WORKOUT_TEMPLATE[selected.getDay()];
-  const selectedRow = rowByDate.get(selectedDate);
-  const selectedExercises = (
-    selectedRow?.exercises?.length ? selectedRow.exercises : selectedTemplate.exercises
-  ).map((ex) => ({ ...ex, done: "done" in ex ? Boolean(ex.done) : false }));
+  const selectedSessions = (rowsByDate.get(selectedDate) ?? []).map((r) => ({
+    session: r.session,
+    dayType: r.dayType,
+    title: r.title,
+    completed: r.completed,
+    exercises: (r.exercises ?? []).map((ex) => ({
+      ...ex,
+      done: "done" in ex ? Boolean(ex.done) : false,
+    })),
+  }));
 
   return (
     <div className="rise-in">
@@ -54,8 +65,10 @@ export default async function WorkoutPage({
         {weekDates.map((d) => {
           const dow = new Date(d + "T00:00:00").getDay();
           const t = WORKOUT_TEMPLATE[dow];
-          const row = rowByDate.get(d);
-          const done = row?.completed;
+          const daySessions = rowsByDate.get(d) ?? [];
+          const primary = daySessions.find((r) => r.session === 1);
+          const done = primary?.completed;
+          const extraCount = daySessions.filter((r) => r.session > 1).length;
           const isSelected = d === selectedDate;
 
           return (
@@ -87,7 +100,10 @@ export default async function WorkoutPage({
               >
                 {t.title}
               </span>
-              {done && <span className="mt-1 text-[10px]">✓</span>}
+              <span className="mt-1 text-[10px]">
+                {done && "✓"}
+                {extraCount > 0 && ` +${extraCount}`}
+              </span>
             </a>
           );
         })}
@@ -98,14 +114,10 @@ export default async function WorkoutPage({
         note={selectedTemplate.duration}
       />
 
-      <WorkoutChecklist
+      <WorkoutDayPanel
         date={selectedDate}
-        dayType={selectedTemplate.dayType}
-        title={selectedTemplate.title}
-        duration={selectedTemplate.duration}
-        note={selectedTemplate.note}
-        initialExercises={selectedExercises}
-        initialCompleted={selectedRow?.completed ?? false}
+        template={selectedTemplate}
+        dbSessions={selectedSessions}
       />
     </div>
   );

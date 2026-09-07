@@ -1,10 +1,10 @@
 import { desc } from "drizzle-orm";
 import { format, parseISO } from "date-fns";
-import Image from "next/image";
 import { getDb } from "@/db";
 import { bodyLogs } from "@/db/schema";
 import SectionHead from "@/components/SectionHead";
 import BodyLogForm from "@/components/BodyLogForm";
+import ZoomableImage from "@/components/ZoomableImage";
 
 export const dynamic = "force-dynamic";
 
@@ -61,19 +61,12 @@ export default async function BodyPage() {
             {log.photoUrls.length > 0 && (
               <div className="mt-3 flex gap-2 overflow-x-auto">
                 {log.photoUrls.map((url, i) => (
-                  <div
+                  <ZoomableImage
                     key={i}
-                    className="relative h-28 w-24 flex-shrink-0 overflow-hidden rounded-sm border border-line"
-                  >
-                    <Image
-                      src={url}
-                      alt=""
-                      fill
-                      sizes="96px"
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </div>
+                    src={url}
+                    sizes="96px"
+                    className="h-28 w-24 flex-shrink-0 rounded-sm border border-line"
+                  />
                 ))}
               </div>
             )}

@@ -1,23 +1,26 @@
 import { asc, desc } from "drizzle-orm";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { getDb } from "@/db";
-import { bodyLogs, workoutDays, inbodyScans } from "@/db/schema";
+import { bodyLogs, workoutDays, inbodyScans, goals } from "@/db/schema";
 import SectionHead from "@/components/SectionHead";
 import StatCard from "@/components/StatCard";
 import TrendChart, { TrendPoint } from "@/components/TrendChart";
 import BodySilhouette from "@/components/BodySilhouette";
+import GoalCard from "@/components/GoalCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const db = getDb();
 
-  const [logs, workouts, scans] = await Promise.all([
+  const [logs, workouts, scans, goalRows] = await Promise.all([
     db.select().from(bodyLogs).orderBy(asc(bodyLogs.date)),
     db.select().from(workoutDays).orderBy(desc(workoutDays.date)),
     db.select().from(inbodyScans).orderBy(desc(inbodyScans.date)).limit(1),
+    db.select().from(goals).limit(1),
   ]);
 
+  const goal = goalRows[0] ?? null;
   const latestScan = scans[0];
   const latestLog = logs[logs.length - 1];
 
@@ -65,6 +68,10 @@ export default async function DashboardPage() {
           accent="olive"
         />
         <StatCard label="Chuỗi ngày tập" value={`${streak} 🔥`} />
+      </div>
+
+      <div className="mt-4">
+        <GoalCard initialGoal={goal} currentWeight={currentWeight} />
       </div>
 
       {latestScan?.segmentFat && latestScan?.segmentMuscle && (

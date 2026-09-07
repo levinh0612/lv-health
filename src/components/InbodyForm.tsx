@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import PhotoUpload from "@/components/PhotoUpload";
-import type { BodySegments, SegmentStatus } from "@/db/schema";
+import type { BodySegments, SegmentDetail, SegmentStatus } from "@/db/schema";
 
 const FIELDS: { key: string; label: string; placeholder: string }[] = [
   { key: "weightKg", label: "Cân nặng (kg)", placeholder: "78.6" },
@@ -26,11 +26,11 @@ const SEGMENT_PARTS: { key: keyof BodySegments; label: string }[] = [
 ];
 
 const DEFAULT_SEGMENTS: BodySegments = {
-  leftArm: "standard",
-  rightArm: "standard",
-  trunk: "standard",
-  leftLeg: "standard",
-  rightLeg: "standard",
+  leftArm: { status: "standard", percent: null },
+  rightArm: { status: "standard", percent: null },
+  trunk: { status: "standard", percent: null },
+  leftLeg: { status: "standard", percent: null },
+  rightLeg: { status: "standard", percent: null },
 };
 
 export default function InbodyForm() {
@@ -196,6 +196,10 @@ function SegmentEditor({
   value: BodySegments;
   onChange: (v: BodySegments) => void;
 }) {
+  function updateDetail(key: keyof BodySegments, patch: Partial<SegmentDetail>) {
+    onChange({ ...value, [key]: { ...value[key], ...patch } });
+  }
+
   return (
     <div>
       <span className="mb-1.5 block text-xs font-medium text-muted">{title}</span>
@@ -203,22 +207,35 @@ function SegmentEditor({
         {SEGMENT_PARTS.map((part) => (
           <div key={part.key} className="flex items-center justify-between gap-2">
             <span className="text-xs text-muted">{part.label}</span>
-            <div className="flex gap-1">
-              {STATUS_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onChange({ ...value, [part.key]: opt.value })}
-                  className={clsx(
-                    "rounded-full px-2.5 py-0.5 text-[11px] transition-colors",
-                    value[part.key] === opt.value
-                      ? "bg-ink text-paper"
-                      : "bg-paper-dim text-muted"
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number"
+                placeholder="%"
+                value={value[part.key].percent ?? ""}
+                onChange={(e) =>
+                  updateDetail(part.key, {
+                    percent: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+                className="w-14 rounded-sm border border-line bg-white px-1.5 py-0.5 text-[11px] outline-none focus:border-steel"
+              />
+              <div className="flex gap-1">
+                {STATUS_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => updateDetail(part.key, { status: opt.value })}
+                    className={clsx(
+                      "rounded-full px-2.5 py-0.5 text-[11px] transition-colors",
+                      value[part.key].status === opt.value
+                        ? "bg-ink text-paper"
+                        : "bg-paper-dim text-muted"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ))}

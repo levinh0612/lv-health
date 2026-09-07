@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import type { BodySegments, SegmentStatus } from "@/db/schema";
+import type { BodySegments, SegmentDetail, SegmentStatus } from "@/db/schema";
 
 const STATUS_LABEL: Record<SegmentStatus, string> = {
   under: "Dưới chuẩn",
@@ -7,10 +7,23 @@ const STATUS_LABEL: Record<SegmentStatus, string> = {
   over: "Vượt chuẩn",
 };
 
+function statusLabelFor(kind: "fat" | "muscle", status: SegmentStatus): string {
+  if (kind === "fat" && status === "over") return "Báo động";
+  return STATUS_LABEL[status];
+}
+
 function colorFor(kind: "fat" | "muscle", status: SegmentStatus) {
   if (status === "standard") return "var(--olive)";
   if (kind === "fat") return status === "over" ? "var(--rust)" : "var(--steel)";
   return status === "over" ? "var(--steel)" : "var(--rust)";
+}
+
+function adviceFor(kind: "fat" | "muscle", status: SegmentStatus): string {
+  if (status === "standard") return "Duy trì mức hiện tại";
+  if (kind === "fat") {
+    return status === "over" ? "Ưu tiên giảm mỡ vùng này" : "Mỡ thấp, không cần giảm thêm";
+  }
+  return status === "under" ? "Nên tăng cơ vùng này" : "Cơ phát triển tốt";
 }
 
 export default function BodySilhouette({
@@ -22,7 +35,7 @@ export default function BodySilhouette({
   kind: "fat" | "muscle";
   segments: BodySegments;
 }) {
-  const c = (part: keyof BodySegments) => colorFor(kind, segments[part]);
+  const c = (part: keyof BodySegments) => colorFor(kind, segments[part].status);
 
   return (
     <div className="rounded-sm border border-line bg-paper-card p-4">
@@ -47,12 +60,12 @@ export default function BodySilhouette({
         </svg>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted">
-        <SegRow label="Tay trái" status={segments.leftArm} color={c("leftArm")} />
-        <SegRow label="Tay phải" status={segments.rightArm} color={c("rightArm")} />
-        <SegRow label="Thân" status={segments.trunk} color={c("trunk")} />
-        <SegRow label="Chân trái" status={segments.leftLeg} color={c("leftLeg")} />
-        <SegRow label="Chân phải" status={segments.rightLeg} color={c("rightLeg")} />
+      <div className="mt-3 space-y-2 text-[11px] text-muted">
+        <SegRow label="Tay trái" kind={kind} detail={segments.leftArm} color={c("leftArm")} />
+        <SegRow label="Tay phải" kind={kind} detail={segments.rightArm} color={c("rightArm")} />
+        <SegRow label="Thân" kind={kind} detail={segments.trunk} color={c("trunk")} />
+        <SegRow label="Chân trái" kind={kind} detail={segments.leftLeg} color={c("leftLeg")} />
+        <SegRow label="Chân phải" kind={kind} detail={segments.rightLeg} color={c("rightLeg")} />
       </div>
     </div>
   );
@@ -60,22 +73,30 @@ export default function BodySilhouette({
 
 function SegRow({
   label,
-  status,
+  kind,
+  detail,
   color,
 }: {
   label: string;
-  status: SegmentStatus;
+  kind: "fat" | "muscle";
+  detail: SegmentDetail;
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-start gap-1.5">
       <span
-        className={clsx("h-2 w-2 flex-shrink-0 rounded-full")}
+        className="mt-1 h-2 w-2 flex-shrink-0 rounded-full"
         style={{ background: color }}
       />
-      <span>
-        {label}: <span className="text-ink">{STATUS_LABEL[status]}</span>
-      </span>
+      <div>
+        <span className="text-ink">{label}</span>
+        {": "}
+        <span className={clsx(kind === "fat" && detail.status === "over" && "font-semibold text-rust")}>
+          {statusLabelFor(kind, detail.status)}
+        </span>
+        {detail.percent != null && <span> ({detail.percent}%)</span>}
+        <div className="text-faint">{adviceFor(kind, detail.status)}</div>
+      </div>
     </div>
   );
 }
