@@ -8,6 +8,7 @@ import StatCard from "@/components/StatCard";
 import MealForm from "@/components/MealForm";
 import ZoomableImage from "@/components/ZoomableImage";
 import MealSuggestion from "@/components/MealSuggestion";
+import MealEstimateButton from "@/components/MealEstimateButton";
 
 export const dynamic = "force-dynamic";
 
@@ -101,11 +102,13 @@ export default async function MealsPage() {
                   {format(new Date(m.datetime), "dd/MM")}
                 </span>
               </div>
-              {m.calories != null && (
+              {m.calories != null ? (
                 <p className="mt-0.5 text-[10px] text-muted">
                   {Math.round(m.calories)} kcal · {Math.round(m.proteinG ?? 0)}Đ {Math.round(m.carbsG ?? 0)}C{" "}
                   {Math.round(m.fatG ?? 0)}B
                 </p>
+              ) : (
+                m.photoUrl && <MealEstimateButton mealId={m.id} />
               )}
               {m.tags.length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-1">
