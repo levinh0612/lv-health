@@ -128,6 +128,68 @@ Nếu không đọc được một giá trị nào đó, để null cho giá tr�
   return JSON.parse(text);
 }
 
+const mealNutritionSchema = {
+  type: Type.OBJECT,
+  properties: {
+    calories: { type: Type.NUMBER, description: "Tổng năng lượng ước tính của khẩu phần trong ảnh (kcal)" },
+    proteinG: { type: Type.NUMBER, description: "Tổng đạm ước tính (gram)" },
+    carbsG: { type: Type.NUMBER, description: "Tổng tinh bột/carb ước tính (gram)" },
+    fatG: { type: Type.NUMBER, description: "Tổng chất béo ước tính (gram)" },
+    note: {
+      type: Type.STRING,
+      description: "1 câu mô tả ngắn món ăn nhận diện được, kèm ghi chú nếu ước tính khó chính xác",
+    },
+    items: {
+      type: Type.ARRAY,
+      description: "Từng món chính trong khẩu phần kèm calo ước tính riêng của món đó",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          calories: { type: Type.NUMBER },
+        },
+        required: ["name", "calories"],
+      },
+    },
+  },
+  required: ["calories", "proteinG", "carbsG", "fatG", "note", "items"],
+};
+
+export async function estimateMealNutrition(imageBase64: string, mimeType: string) {
+  const client = getClient();
+
+  const response = await client.models.generateContent({
+    model: "gemini-3.5-flash-lite",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { inlineData: { data: imageBase64, mimeType } },
+          {
+            text: `Đây là ảnh chụp một bữa ăn. Ước tính giá trị dinh dưỡng của toàn bộ khẩu phần nhìn thấy trong ảnh, trả về đúng schema JSON:
+- calories: tổng năng lượng (kcal)
+- proteinG: tổng đạm (gram)
+- carbsG: tổng tinh bột/carb (gram)
+- fatG: tổng chất béo (gram)
+- items: liệt kê từng món chính nhận diện được kèm calo ước tính riêng của món đó
+- note: 1 câu mô tả ngắn món ăn, kèm ghi chú nếu góc chụp/khẩu phần khó ước lượng chính xác
+
+Đây là ước tính tham khảo dựa trên hình ảnh, không cần chính xác tuyệt đối — cứ đưa ra con số hợp lý nhất có thể. Chỉ trả về JSON, không giải thích gì thêm ngoài field note.`,
+          },
+        ],
+      },
+    ],
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: mealNutritionSchema,
+    },
+  });
+
+  const text = response.text;
+  if (!text) throw new Error("Gemini không trả về dữ liệu");
+  return JSON.parse(text);
+}
+
 const mealSuggestionSchema = {
   type: Type.OBJECT,
   properties: {

@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       bodyFatPercent: body.bodyFatPercent ?? null,
       skeletalMuscleKg: body.skeletalMuscleKg ?? null,
       photoUrls: body.photoUrls ?? [],
+      measurements: body.measurements ?? null,
       notes: body.notes ?? null,
     })
     .returning();

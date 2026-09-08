@@ -5,6 +5,15 @@ import { bodyLogs } from "@/db/schema";
 import SectionHead from "@/components/SectionHead";
 import BodyLogForm from "@/components/BodyLogForm";
 import ZoomableImage from "@/components/ZoomableImage";
+import PhotoCompare from "@/components/PhotoCompare";
+
+const MEASUREMENT_LABEL: Record<string, string> = {
+  waistCm: "eo",
+  chestCm: "ngực",
+  hipCm: "hông",
+  armCm: "tay",
+  thighCm: "đùi",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +35,26 @@ export default async function BodyPage() {
       <div className="mt-6">
         <BodyLogForm />
       </div>
+
+      {(() => {
+        const photoEntries = [...logs]
+          .filter((l) => l.photoUrls.length > 0)
+          .sort((a, b) => (a.date < b.date ? -1 : 1))
+          .map((l) => ({
+            id: l.id,
+            date: l.date,
+            photoUrl: l.photoUrls[0],
+            weightKg: l.weightKg,
+            bodyFatKg: l.bodyFatKg,
+          }));
+        if (photoEntries.length < 2) return null;
+        return (
+          <>
+            <SectionHead title="So sánh ảnh" note="Chọn 2 mốc để xem tiến trình" />
+            <PhotoCompare entries={photoEntries} />
+          </>
+        );
+      })()}
 
       <SectionHead title="Lịch sử" note="So sánh ảnh và số đo theo từng tuần" />
 
@@ -53,6 +82,15 @@ export default async function BodyPage() {
                   .join(" · ")}
               </span>
             </div>
+
+            {log.measurements && Object.keys(log.measurements).length > 0 && (
+              <p className="mt-1 text-xs text-faint">
+                {Object.entries(log.measurements)
+                  .filter(([, v]) => v != null)
+                  .map(([k, v]) => `${MEASUREMENT_LABEL[k] ?? k} ${v}cm`)
+                  .join(" · ")}
+              </p>
+            )}
 
             {log.notes && (
               <p className="mt-2 text-sm text-muted">{log.notes}</p>

@@ -11,6 +11,14 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 
+export type BodyMeasurements = {
+  waistCm?: number | null;
+  chestCm?: number | null;
+  hipCm?: number | null;
+  armCm?: number | null;
+  thighCm?: number | null;
+};
+
 export const bodyLogs = pgTable("body_logs", {
   id: serial("id").primaryKey(),
   date: date("date").notNull(),
@@ -19,6 +27,7 @@ export const bodyLogs = pgTable("body_logs", {
   bodyFatPercent: real("body_fat_percent"),
   skeletalMuscleKg: real("skeletal_muscle_kg"),
   photoUrls: jsonb("photo_urls").$type<string[]>().notNull().default([]),
+  measurements: jsonb("measurements").$type<BodyMeasurements>(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -30,6 +39,14 @@ export const meals = pgTable("meals", {
   photoUrl: text("photo_url"),
   tags: jsonb("tags").$type<string[]>().notNull().default([]), // dat_chuan | han_che
   notes: text("notes"),
+  // AI-estimated (from photoUrl via Gemini) or manually edited nutrition —
+  // all nullable since older meals and photo-less entries have none.
+  calories: real("calories"),
+  proteinG: real("protein_g"),
+  carbsG: real("carbs_g"),
+  fatG: real("fat_g"),
+  nutritionNote: text("nutrition_note"),
+  nutritionItems: jsonb("nutrition_items").$type<{ name: string; calories: number }[]>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -51,6 +68,8 @@ export const workoutDays = pgTable(
           photoUrl?: string | null;
           photoPublicId?: string | null;
           photoAt?: string | null;
+          note?: string | null;
+          loggedSets?: { weight: number; reps: number; isPR?: boolean }[];
         }[]
       >()
       .notNull()

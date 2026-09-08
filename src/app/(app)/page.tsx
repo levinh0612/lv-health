@@ -8,13 +8,14 @@ import StatCard from "@/components/StatCard";
 import TrendChart, { TrendPoint } from "@/components/TrendChart";
 import BodySilhouette from "@/components/BodySilhouette";
 import GoalCard from "@/components/GoalCard";
+import { getReminders } from "@/lib/reminders";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const db = getDb();
 
-  const [logs, workouts, scans, allScans, goalRows] = await Promise.all([
+  const [logs, workouts, scans, allScans, goalRows, reminders] = await Promise.all([
     db.select().from(bodyLogs).orderBy(asc(bodyLogs.date)),
     db
       .select()
@@ -24,7 +25,14 @@ export default async function DashboardPage() {
     db.select().from(inbodyScans).orderBy(desc(inbodyScans.date)).limit(1),
     db.select().from(inbodyScans).orderBy(asc(inbodyScans.date)),
     db.select().from(goals).limit(1),
+    getReminders(),
   ]);
+
+  const pendingLabels = [
+    reminders.workoutPending && "buổi tập hôm nay",
+    reminders.mealPending && `bữa ${reminders.mealWindowLabel}`,
+    reminders.bodyLogPending && "cân/đo body tuần này",
+  ].filter(Boolean) as string[];
 
   const goal = goalRows[0] ?? null;
   const latestScan = scans[0];
@@ -74,6 +82,12 @@ export default async function DashboardPage() {
           ? `Số liệu InBody gần nhất: ${format(parseISO(latestScan.date), "dd/MM/yyyy")}`
           : "Chưa có dữ liệu InBody — thêm bản đo đầu tiên ở tab InBody."}
       </p>
+
+      {pendingLabels.length > 0 && (
+        <div className="mt-4 rounded-sm border border-rust/30 bg-rust/10 px-3 py-2 text-sm text-rust">
+          Còn thiếu hôm nay: {pendingLabels.join(", ")}.
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard

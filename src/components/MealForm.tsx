@@ -17,6 +17,16 @@ const TAGS = [
   { value: "han_che", label: "Hạn chế", accent: "rust" },
 ] as const;
 
+type NutritionItem = { name: string; calories: number };
+type Nutrition = {
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  note: string;
+  items: NutritionItem[];
+};
+
 export default function MealForm() {
   const router = useRouter();
   const [mealType, setMealType] = useState<string>("sang");
@@ -25,10 +35,49 @@ export default function MealForm() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const [estimating, setEstimating] = useState(false);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [items, setItems] = useState<NutritionItem[]>([]);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const [calories, setCalories] = useState("");
+  const [proteinG, setProteinG] = useState("");
+  const [carbsG, setCarbsG] = useState("");
+  const [fatG, setFatG] = useState("");
+
   function toggleTag(tag: string) {
     setTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
+  }
+
+  async function estimateNutrition(url: string) {
+    setEstimating(true);
+    setEstimateError(null);
+    try {
+      const res = await fetch("/api/meals/estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoUrl: url }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Ước tính thất bại");
+      const data: Nutrition = await res.json();
+      setCalories(String(Math.round(data.calories)));
+      setProteinG(String(Math.round(data.proteinG)));
+      setCarbsG(String(Math.round(data.carbsG)));
+      setFatG(String(Math.round(data.fatG)));
+      setItems(data.items ?? []);
+      setAiNote(data.note ?? null);
+    } catch (err) {
+      setEstimateError(err instanceof Error ? err.message : "Ước tính thất bại");
+    } finally {
+      setEstimating(false);
+    }
+  }
+
+  async function handlePhotoUploaded(urls: string[]) {
+    const url = urls[0];
+    setPhotoUrl(url);
+    estimateNutrition(url);
   }
 
   async function handleSubmit() {
@@ -43,11 +92,24 @@ export default function MealForm() {
           photoUrl,
           tags,
           notes: notes || null,
+          calories: calories ? Number(calories) : null,
+          proteinG: proteinG ? Number(proteinG) : null,
+          carbsG: carbsG ? Number(carbsG) : null,
+          fatG: fatG ? Number(fatG) : null,
+          nutritionNote: aiNote,
+          nutritionItems: items.length > 0 ? items : null,
         }),
       });
       setNotes("");
       setTags([]);
       setPhotoUrl(null);
+      setCalories("");
+      setProteinG("");
+      setCarbsG("");
+      setFatG("");
+      setItems([]);
+      setAiNote(null);
+      setEstimateError(null);
       router.refresh();
     } finally {
       setSaving(false);
@@ -75,8 +137,52 @@ export default function MealForm() {
 
       <PhotoUpload
         label={photoUrl ? "Đã tải ảnh" : "Chụp ảnh bữa ăn"}
-        onUploaded={(urls) => setPhotoUrl(urls[0])}
+        onUploaded={handlePhotoUploaded}
       />
+
+      {photoUrl && (
+        <div className="rounded-sm border border-dashed border-line bg-paper-dim/40 p-3">
+          <div className="flex items-center justify-between">
+            <span className="font-display text-[11px] uppercase tracking-wide text-muted">
+              Ước tính dinh dưỡng (AI)
+            </span>
+            {!estimating && (
+              <button
+                type="button"
+                onClick={() => estimateNutrition(photoUrl)}
+                className="text-[11px] text-steel hover:underline"
+              >
+                Ước tính lại
+              </button>
+            )}
+          </div>
+
+          {estimating && <p className="mt-2 text-xs text-faint">Đang phân tích ảnh...</p>}
+          {estimateError && <p className="mt-2 text-xs text-rust">{estimateError}</p>}
+
+          {!estimating && (calories || proteinG || carbsG || fatG) && (
+            <>
+              <div className="mt-2 grid grid-cols-4 gap-1.5">
+                <NutritionField label="Kcal" value={calories} onChange={setCalories} />
+                <NutritionField label="Đạm (g)" value={proteinG} onChange={setProteinG} />
+                <NutritionField label="Carb (g)" value={carbsG} onChange={setCarbsG} />
+                <NutritionField label="Béo (g)" value={fatG} onChange={setFatG} />
+              </div>
+              {items.length > 0 && (
+                <ul className="mt-2 space-y-0.5">
+                  {items.map((it, i) => (
+                    <li key={i} className="flex justify-between text-[11px] text-muted">
+                      <span className="truncate">{it.name}</span>
+                      <span className="flex-shrink-0 pl-2 text-faint">{Math.round(it.calories)} kcal</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {aiNote && <p className="mt-2 text-[11px] italic text-faint">{aiNote}</p>}
+            </>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-2">
         {TAGS.map((t) => (
@@ -112,5 +218,27 @@ export default function MealForm() {
         {saving ? "Đang lưu..." : "Lưu bữa ăn"}
       </button>
     </div>
+  );
+}
+
+function NutritionField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[10px] text-faint">{label}</span>
+      <input
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-0.5 w-full rounded-sm border border-line bg-white px-1.5 py-1 text-xs outline-none focus:border-steel"
+      />
+    </label>
   );
 }

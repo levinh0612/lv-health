@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
+import type { Reminders } from "@/lib/reminders";
 
 const ITEMS = [
-  { href: "/", label: "Tổng quan", icon: DashboardIcon },
-  { href: "/body", label: "Body", icon: BodyIcon },
-  { href: "/meals", label: "Bữa ăn", icon: MealIcon },
-  { href: "/workout", label: "Tập", icon: WorkoutIcon },
-  { href: "/inbody", label: "InBody", icon: ScanIcon },
+  { href: "/", label: "Tổng quan", icon: DashboardIcon, badgeKey: null },
+  { href: "/body", label: "Body", icon: BodyIcon, badgeKey: "bodyLogPending" },
+  { href: "/meals", label: "Bữa ăn", icon: MealIcon, badgeKey: "mealPending" },
+  { href: "/workout", label: "Tập", icon: WorkoutIcon, badgeKey: "workoutPending" },
+  { href: "/inbody", label: "InBody", icon: ScanIcon, badgeKey: null },
 ] as const;
 
-export default function BottomNav() {
+export default function BottomNav({ reminders }: { reminders?: Reminders }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -25,20 +26,26 @@ export default function BottomNav() {
   return (
     <nav className="sticky bottom-0 z-20 border-t border-line bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/80">
       <div className="mx-auto flex max-w-3xl items-stretch justify-between px-1">
-        {ITEMS.map(({ href, label, icon: Icon }) => {
+        {ITEMS.map(({ href, label, icon: Icon, badgeKey }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const showBadge = badgeKey != null && reminders?.[badgeKey];
           return (
             <Link
               key={href}
               href={href}
               className="flex flex-1 flex-col items-center gap-1 py-2.5"
             >
-              <Icon
-                className={clsx(
-                  "h-5 w-5 transition-colors",
-                  active ? "text-rust" : "text-faint"
+              <span className="relative">
+                <Icon
+                  className={clsx(
+                    "h-5 w-5 transition-colors",
+                    active ? "text-rust" : "text-faint"
+                  )}
+                />
+                {showBadge && (
+                  <span className="absolute -right-1 -top-0.5 h-1.5 w-1.5 rounded-full bg-rust" />
                 )}
-              />
+              </span>
               <span
                 className={clsx(
                   "font-display text-[10px] uppercase tracking-wide transition-colors",

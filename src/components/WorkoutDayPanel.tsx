@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import clsx from "clsx";
 import WorkoutChecklist from "@/components/WorkoutChecklist";
 import type { DayTemplate } from "@/lib/workoutTemplate";
+import type { PrMap, PrRecord } from "@/lib/strength";
 
 type Exercise = { name: string; sets: string; rest: string; done: boolean };
 export type SessionRow = {
@@ -19,11 +20,17 @@ export default function WorkoutDayPanel({
   template,
   dbSessions,
   onSessionsChange,
+  prMap,
+  onPrUpdate,
+  onPrRemoved,
 }: {
   date: string;
   template: DayTemplate;
   dbSessions: SessionRow[];
   onSessionsChange?: (sessions: SessionRow[]) => void;
+  prMap?: PrMap;
+  onPrUpdate?: (name: string, record: PrRecord) => void;
+  onPrRemoved?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
 
@@ -131,6 +138,9 @@ export default function WorkoutDayPanel({
         initialCompleted={active.completed}
         isCustom={active.session > 1}
         onMutate={handleChecklistMutate}
+        prMap={prMap}
+        onPrUpdate={onPrUpdate}
+        onPrRemoved={onPrRemoved}
       />
     </div>
   );

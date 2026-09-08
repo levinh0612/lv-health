@@ -14,6 +14,7 @@ import { WORKOUT_TEMPLATE, DOW_LABEL } from "@/lib/workoutTemplate";
 import SectionHead from "@/components/SectionHead";
 import WorkoutDayPanel, { type SessionRow } from "@/components/WorkoutDayPanel";
 import WorkoutMonthView from "@/components/WorkoutMonthView";
+import type { PrMap, PrRecord } from "@/lib/strength";
 
 type MonthRow = { date: string; completed: boolean };
 
@@ -28,6 +29,7 @@ export default function WorkoutClient({
   selectedDate: initialSelectedDate,
   month: initialMonth,
   monthRows: initialMonthRows,
+  initialPrMap,
 }: {
   initialView: "week" | "month";
   weekDates: string[];
@@ -35,8 +37,23 @@ export default function WorkoutClient({
   selectedDate: string;
   month: string;
   monthRows: MonthRow[];
+  initialPrMap?: PrMap;
 }) {
   const [view, setView] = useState(initialView);
+  const [prMap, setPrMap] = useState<PrMap>(initialPrMap ?? {});
+
+  function handlePrUpdate(name: string, record: PrRecord) {
+    setPrMap((prev) => ({ ...prev, [name]: record }));
+  }
+
+  // Removing a logged set can invalidate the local PR cache (the removed
+  // set may have been the recorded best), so re-derive it from the server
+  // instead of trying to recompute the right fallback client-side.
+  async function refreshPrMap() {
+    const res = await fetch("/api/workouts/pr");
+    if (res.ok) setPrMap(await res.json());
+  }
+
   const [weekDates, setWeekDates] = useState(initialWeekDates);
   const [weekRowsByDate, setWeekRowsByDate] = useState(initialWeekRowsByDate);
   const [selectedDate, setSelectedDate] = useState(initialSelectedDate);
@@ -246,6 +263,9 @@ export default function WorkoutClient({
             template={template}
             dbSessions={selectedSessions}
             onSessionsChange={(sessions) => handleSessionsChange(selectedDate, sessions)}
+            prMap={prMap}
+            onPrUpdate={handlePrUpdate}
+            onPrRemoved={refreshPrMap}
           />
         </>
       )}

@@ -23,6 +23,12 @@ export async function POST(req: NextRequest) {
       photoUrl: body.photoUrl ?? null,
       tags: body.tags ?? [],
       notes: body.notes ?? null,
+      calories: body.calories ?? null,
+      proteinG: body.proteinG ?? null,
+      carbsG: body.carbsG ?? null,
+      fatG: body.fatG ?? null,
+      nutritionNote: body.nutritionNote ?? null,
+      nutritionItems: body.nutritionItems ?? null,
     })
     .returning();
 

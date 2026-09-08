@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { workoutDays } from "@/db/schema";
 import WorkoutClient from "@/components/WorkoutClient";
 import type { SessionRow } from "@/components/WorkoutDayPanel";
+import { computePrMap } from "@/lib/strength";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function WorkoutPage({
   const monthStart = format(startOfMonth(new Date(`${month}-01`)), "yyyy-MM-dd");
   const monthEnd = format(endOfMonth(new Date(`${month}-01`)), "yyyy-MM-dd");
 
-  const [weekRows, monthRows] = await Promise.all([
+  const [weekRows, monthRows, allExerciseRows] = await Promise.all([
     getDb()
       .select()
       .from(workoutDays)
@@ -41,7 +42,10 @@ export default async function WorkoutPage({
           lte(workoutDays.date, monthEnd)
         )
       ),
+    getDb().select({ date: workoutDays.date, exercises: workoutDays.exercises }).from(workoutDays),
   ]);
+
+  const initialPrMap = computePrMap(allExerciseRows);
 
   const weekRowsByDate: Record<string, SessionRow[]> = {};
   for (const r of weekRows) {
@@ -67,6 +71,7 @@ export default async function WorkoutPage({
       selectedDate={selectedDate}
       month={month}
       monthRows={monthRows}
+      initialPrMap={initialPrMap}
     />
   );
 }

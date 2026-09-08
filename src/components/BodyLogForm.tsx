@@ -4,6 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PhotoUpload from "@/components/PhotoUpload";
 
+const MEASUREMENT_FIELDS = [
+  { key: "waistCm", label: "Vòng eo (cm)" },
+  { key: "chestCm", label: "Vòng ngực (cm)" },
+  { key: "hipCm", label: "Vòng hông (cm)" },
+  { key: "armCm", label: "Bắp tay (cm)" },
+  { key: "thighCm", label: "Vòng đùi (cm)" },
+] as const;
+
+type MeasurementKey = (typeof MEASUREMENT_FIELDS)[number]["key"];
+
 export default function BodyLogForm() {
   const router = useRouter();
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -13,10 +23,24 @@ export default function BodyLogForm() {
   const [notes, setNotes] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showMeasurements, setShowMeasurements] = useState(false);
+  const [measurements, setMeasurements] = useState<Record<MeasurementKey, string>>({
+    waistCm: "",
+    chestCm: "",
+    hipCm: "",
+    armCm: "",
+    thighCm: "",
+  });
 
   async function handleSubmit() {
     setSaving(true);
     try {
+      const measurementsPayload = Object.fromEntries(
+        Object.entries(measurements)
+          .filter(([, v]) => v.trim() !== "")
+          .map(([k, v]) => [k, Number(v)])
+      );
+
       await fetch("/api/body-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -27,6 +51,7 @@ export default function BodyLogForm() {
           skeletalMuscleKg: skeletalMuscleKg ? Number(skeletalMuscleKg) : null,
           notes: notes || null,
           photoUrls,
+          measurements: Object.keys(measurementsPayload).length > 0 ? measurementsPayload : null,
         }),
       });
       setWeightKg("");
@@ -34,6 +59,7 @@ export default function BodyLogForm() {
       setSkeletalMuscleKg("");
       setNotes("");
       setPhotoUrls([]);
+      setMeasurements({ waistCm: "", chestCm: "", hipCm: "", armCm: "", thighCm: "" });
       router.refresh();
     } finally {
       setSaving(false);
@@ -81,6 +107,35 @@ export default function BodyLogForm() {
             placeholder="29.3"
           />
         </Field>
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowMeasurements((v) => !v)}
+          className="font-display text-[11px] uppercase tracking-wide text-steel"
+        >
+          {showMeasurements ? "− Ẩn số đo vòng cơ thể" : "+ Thêm số đo vòng cơ thể"}
+        </button>
+
+        {showMeasurements && (
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {MEASUREMENT_FIELDS.map((f) => (
+              <Field key={f.key} label={f.label}>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={measurements[f.key]}
+                  onChange={(e) =>
+                    setMeasurements((prev) => ({ ...prev, [f.key]: e.target.value }))
+                  }
+                  className="input"
+                  placeholder="—"
+                />
+              </Field>
+            ))}
+          </div>
+        )}
       </div>
 
       <PhotoUpload

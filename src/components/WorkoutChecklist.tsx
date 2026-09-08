@@ -13,6 +13,9 @@ import {
 } from "@/lib/workoutTemplate";
 import ZoomableImage from "@/components/ZoomableImage";
 import { uploadToCloudinaryWithId, deleteCloudinaryPhoto } from "@/lib/cloudinary";
+import SetLogger from "@/components/SetLogger";
+import RestTimer, { type RestTimerState } from "@/components/RestTimer";
+import { epley1RM, isWeightLoggable, parseRestSeconds, type LoggedSet, type PrMap } from "@/lib/strength";
 
 type Exercise = TemplateExercise & {
   done: boolean;
@@ -20,6 +23,7 @@ type Exercise = TemplateExercise & {
   photoPublicId?: string | null;
   photoAt?: string | null;
   note?: string | null;
+  loggedSets?: LoggedSet[];
 };
 
 function toYouTubeEmbedUrl(url: string): string | null {
@@ -49,6 +53,9 @@ export default function WorkoutChecklist({
   initialCompleted,
   isCustom = false,
   onMutate,
+  prMap,
+  onPrUpdate,
+  onPrRemoved,
 }: {
   date: string;
   session: number;
@@ -60,6 +67,9 @@ export default function WorkoutChecklist({
   initialCompleted: boolean;
   isCustom?: boolean;
   onMutate?: (exercises: Exercise[], completed: boolean) => void;
+  prMap?: PrMap;
+  onPrUpdate?: (name: string, record: { weight: number; reps: number; e1rm: number; date: string }) => void;
+  onPrRemoved?: () => void;
 }) {
   const [exercises, setExercises] = useState(initialExercises);
   const [completed, setCompleted] = useState(initialCompleted);
@@ -71,6 +81,7 @@ export default function WorkoutChecklist({
   const [proofChoiceIndex, setProofChoiceIndex] = useState<number | null>(null);
   const [noteModalIndex, setNoteModalIndex] = useState<number | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [restTimer, setRestTimer] = useState<RestTimerState | null>(null);
   const [isPending, startTransition] = useTransition();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -213,6 +224,38 @@ export default function WorkoutChecklist({
     );
     setExercises(next);
     persist(next, completed);
+  }
+
+  function logSet(i: number, weight: number, reps: number) {
+    const ex = exercises[i];
+    const e1rm = epley1RM(weight, reps);
+    const bestSoFar = prMap?.[ex.name]?.e1rm ?? 0;
+    const isPR = e1rm > bestSoFar;
+    const nextSet: LoggedSet = { weight, reps, isPR };
+    const next = exercises.map((e, idx) =>
+      idx === i ? { ...e, loggedSets: [...(e.loggedSets ?? []), nextSet] } : e
+    );
+    setExercises(next);
+    persist(next, completed);
+
+    if (isPR) onPrUpdate?.(ex.name, { weight, reps, e1rm, date });
+
+    const restSeconds = parseRestSeconds(ex.rest);
+    if (restSeconds) {
+      setRestTimer({ label: ex.name, seconds: restSeconds, key: Date.now() });
+    }
+  }
+
+  function removeSet(i: number, setIndex: number) {
+    const removed = exercises[i].loggedSets?.[setIndex];
+    const next = exercises.map((e, idx) =>
+      idx === i
+        ? { ...e, loggedSets: (e.loggedSets ?? []).filter((_, si) => si !== setIndex) }
+        : e
+    );
+    setExercises(next);
+    persist(next, completed);
+    if (removed?.isPR) onPrRemoved?.();
   }
 
   async function handlePhotoSelected(file: File) {
@@ -418,6 +461,15 @@ export default function WorkoutChecklist({
                       </button>
                     ))}
                 </div>
+              )}
+
+              {isWeightLoggable(ex.sets) && (
+                <SetLogger
+                  loggedSets={ex.loggedSets ?? []}
+                  prRecord={prMap?.[ex.name]}
+                  onLogSet={(weight, reps) => logSet(i, weight, reps)}
+                  onRemoveSet={(setIndex) => removeSet(i, setIndex)}
+                />
               )}
             </div>
           );
@@ -625,6 +677,8 @@ export default function WorkoutChecklist({
             document.body
           );
         })()}
+
+      <RestTimer key={restTimer?.key ?? "idle"} state={restTimer} onDone={() => setRestTimer(null)} />
     </div>
   );
 }
